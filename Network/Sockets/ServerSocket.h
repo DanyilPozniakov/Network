@@ -10,6 +10,7 @@
 #include <ws2tcpip.h>
 #include <string>
 #include <vector>
+#include <ConnectionInfo.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -21,10 +22,11 @@ public:
     explicit ServerSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
     virtual ~ServerSocket();
 
-    virtual void Listen();
+    virtual ConnectionInfo Listen();
     virtual void Send(const std::string& answer);
-    virtual std::string Receive();
+    virtual void Receive();
 
+    std::string ReadBuffer();
 private:
     SOCKET ListenSocket = INVALID_SOCKET;
     WSADATA wsaData;

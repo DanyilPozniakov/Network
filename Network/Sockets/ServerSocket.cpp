@@ -28,7 +28,6 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
     if (getaddrinfo(host.c_str(), port.c_str(), &hints, &result) != 0) //TODO: Add error handling
     {
         std::cout << "getaddrinfo failed: " << WSAGetLastError() << std::endl;
-        WSACleanup();
         return;
     }
 
@@ -38,7 +37,6 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
     {
         std::cout << "Error at socket(): " << WSAGetLastError() << std::endl;
         freeaddrinfo(result);
-        WSACleanup();
         return;
     }
 
@@ -48,7 +46,6 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
         std::cout << "bind failed: " << WSAGetLastError() << std::endl;
         closesocket(ListenSocket);
         freeaddrinfo(result);
-        WSACleanup();
         return;
     }
     freeaddrinfo(result);
@@ -58,7 +55,6 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
     {
         std::cout << "Listen failed: " << WSAGetLastError() << std::endl;
         closesocket(ListenSocket);
-        WSACleanup();
         return;
     }
 
@@ -76,7 +72,7 @@ ServerSocket::~ServerSocket()
 }
 
 
-void ServerSocket::Listen()
+ConnectInfo ServerSocket::Listen()
 {
 
         sockaddr_in clientInfo;
@@ -88,35 +84,35 @@ void ServerSocket::Listen()
             std::cout << "accept failed: " << WSAGetLastError() << std::endl;
             closesocket(ListenSocket);
             WSACleanup();
-            return;
+            return {};
         }
         else
         {
             ClientSockets.push_back(socketClient);
             char host[NI_MAXHOST];
-            inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
+            inet_ntop(AF_INET, &clientInfo.sin_addr,host, NI_MAXHOST);
             int port = ntohs(clientInfo.sin_port);
 
+            std::string hostStr(host);
+            std::string portStr = std::to_string(port);
             std::cout << "Client connected: " << host << " on port " << port << std::endl;
+
+            ConnectInfo connectInfo(hostStr, portStr);
+            connectInfo.SetIsConnected(true);
+            return connectInfo;
+
+
         }
 
 }
 
 void ServerSocket::Send(const std::string& answer)
 {
-    std::string massageGet(recvbuf,1024);
-
-    std::string answerTemp = "HTTP/1.1 200 OK\r\n"
-    "Content-Type: text/html; charset=UTF-8\r\n"
-    "\r\n"
-    "Massage recived : " + massageGet + "\r\n"
-    ;
-
-    int sendResult = send(ClientSockets[0], answerTemp.c_str(), answerTemp.size() + 1, 0);
+    send(ClientSockets[0], answer.c_str(), answer.size(), 0);
 }
 
 
-std::string ServerSocket::Receive()
+void ServerSocket::Receive()
 {
     while (true)
     {
@@ -124,16 +120,27 @@ std::string ServerSocket::Receive()
         if (bytesrecv > 0)
         {
             recvbuf[bytesrecv] = '\0';
-            Send(recvbuf);
+            //TODO: Add signal new message received
+
+
+            Send("Message received" + std::string(recvbuf));
             std::cout << "Massage received: " << recvbuf << std::endl;
         }
         else if (bytesrecv == 0)
         {
             std::cout << "connection closed" << std::endl;
+            break;
         }
         else
         {
             std::cout << "recv failed: " << WSAGetLastError() << std::endl;
+            break;
         }
     }
+}
+
+
+std::string ServerSocket::ReadBuffer()
+{
+    return std::string(recvbuf);
 }

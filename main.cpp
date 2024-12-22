@@ -10,18 +10,18 @@ void rec(ClientSocket& serverSocket)
 
 int main()
 {
+
+
     ClientSocket serverSocket;
     serverSocket.ConnectToServer();
 
     std::thread t1(rec, std::ref(serverSocket));
 
-    int count = 0;
-    while(count < 10)
+    while(true)
     {
         std::string request;
         std::getline(std::cin, request);
         serverSocket.Send(request);
-        count++;
     }
 
 

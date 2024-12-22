@@ -54,6 +54,10 @@ void ClientSocket::ConnectToServer()
 
 }
 
+void ClientSocket::Disconnect()
+{
+}
+
 int ClientSocket::Send(const std::string& request)
 {
     int bytes_send = send(ConnectSocket, request.c_str(), request.size(),0);
@@ -65,11 +69,13 @@ void ClientSocket::Resave()
     //TODO: Add resaving logic...
     while(true)
     {
-        int bytesReceived = recv(ConnectSocket, recvbuf, 1024, 0);
+        ZeroMemory(recvbuf, 1024);
+        int bytesReceived = recv(ConnectSocket, recvbuf, sizeof(recvbuf), 0);
         if(bytesReceived > 0)
         {
             recvbuf[bytesReceived] = '\0';
-            std::cout << "Received: " << recvbuf << std::endl;
+            std::string message = std::string(recvbuf, bytesReceived);
+            std::cout << "Received: " << message << std::endl;
 
         }
         else if(bytesReceived == 0)

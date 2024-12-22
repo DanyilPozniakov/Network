@@ -21,6 +21,7 @@ public:
     virtual ~ClientSocket();
 
     virtual void ConnectToServer();
+    virtual void Disconnect();
     virtual int  Send(const std::string& request);
     virtual void Resave() ;
     virtual void Cleanup() const;
