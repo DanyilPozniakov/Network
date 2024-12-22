@@ -18,20 +18,29 @@
 #define DEFAULT_HOST "localhost"
 
 class ServerSocket {
+    friend class Server;
 public:
     explicit ServerSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
     virtual ~ServerSocket();
 
-    virtual ConnectionInfo Listen();
-    virtual void Send(const std::string& answer);
-    virtual void Receive();
+    void InitializeSocket();
+    void Close();
+    ConnectionInfo Listen();
+    void Send(const std::string& answer);
+    void Receive();
 
     std::string ReadBuffer();
+
+    bool IsValid();
+
+protected:
+    std::vector<SOCKET> ClientSockets = {};
+
 private:
+    addrinfo* result = nullptr;
     SOCKET ListenSocket = INVALID_SOCKET;
     WSADATA wsaData;
     int iResult = 0;
-    std::vector<SOCKET> ClientSockets = {};
 
     char recvbuf[1024];
 

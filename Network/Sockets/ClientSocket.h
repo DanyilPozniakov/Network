@@ -20,11 +20,15 @@ public:
     explicit  ClientSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
     virtual ~ClientSocket();
 
-    virtual void ConnectToServer();
-    virtual void Disconnect();
-    virtual int  Send(const std::string& request);
-    virtual void Resave() ;
-    virtual void Cleanup() const;
+    void ConnectToServer();
+    void Disconnect();
+    int  Send(const std::string& request);
+    void Resave();
+    void Cleanup() const;
+
+
+
+
 
 
 private:

@@ -27,7 +27,6 @@ ClientSocket::ClientSocket(const std::string& host, const std::string& port)
     ConnectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if(ConnectSocket == INVALID_SOCKET)
     {
-        Cleanup();
         std::cout << "Error at socket(): " << WSAGetLastError() << std::endl;
     }
 
@@ -43,7 +42,6 @@ void ClientSocket::ConnectToServer()
 {
     if(connect(ConnectSocket,result->ai_addr,result->ai_addrlen) == SOCKET_ERROR)
     {
-        Cleanup();
         std::cout << "Connect failed: " << WSAGetLastError() << std::endl;
         return;
     }

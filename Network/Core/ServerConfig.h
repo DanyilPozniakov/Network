@@ -8,6 +8,10 @@
 
 
 class ServerConfig {
+public:
+    ServerConfig();
+    ~ServerConfig();
+
 
 };
 

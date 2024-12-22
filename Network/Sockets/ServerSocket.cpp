@@ -1,5 +1,5 @@
 //
-// Created by pozni on 21.12.2024.
+// Created by Pozniakov Danyil on 21.12.2024.
 //
 #include <iostream>
 #include "ServerSocket.h"
@@ -15,7 +15,6 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
         return;
     }
 
-    addrinfo* result = nullptr;
     addrinfo hints{};
 
     //hints settings
@@ -31,6 +30,17 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
         return;
     }
 
+    InitializeSocket();
+}
+
+ServerSocket::~ServerSocket()
+{
+    Close();
+    WSACleanup();
+}
+
+void ServerSocket::InitializeSocket()
+{
     //Initialize the socket
     ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (ListenSocket == INVALID_SOCKET)
@@ -61,49 +71,46 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
     std::cout << "ServerSocket created!" << std::endl;
 }
 
-ServerSocket::~ServerSocket()
+
+void ServerSocket::Close()
 {
     closesocket(ListenSocket);
     for (const auto& ClientSocket : ClientSockets)
     {
         closesocket(ClientSocket);
     }
-    WSACleanup();
+    std::cout << "ServerSocket closed!" << std::endl;
 }
 
-
-ConnectInfo ServerSocket::Listen()
+ConnectionInfo ServerSocket::Listen()
 {
+    sockaddr_in clientInfo;
+    int infoSize = sizeof(clientInfo);
+    std::cout << "Waiting for client connection..." << std::endl;
+    auto socketClient = accept(ListenSocket, reinterpret_cast<sockaddr*>(&clientInfo), &infoSize);
+    std::cout <<  "accepted! " << std::endl;
+    if (socketClient == INVALID_SOCKET)
+    {
+        std::cout << "accept failed: " << WSAGetLastError() << std::endl;
+        closesocket(ListenSocket);
+        WSACleanup();
+        return {};
+    }
+    else
+    {
+        ClientSockets.push_back(socketClient);
+        char host[NI_MAXHOST];
+        inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
+        int port = ntohs(clientInfo.sin_port);
 
-        sockaddr_in clientInfo;
-        int infoSize = sizeof(clientInfo);
+        std::string hostStr(host);
+        std::string portStr = std::to_string(port);
+        std::cout << "Client connected: " << host << " on port " << port << std::endl;
 
-        auto socketClient= accept(ListenSocket, reinterpret_cast<sockaddr*>(&clientInfo), &infoSize);
-        if (socketClient == INVALID_SOCKET)
-        {
-            std::cout << "accept failed: " << WSAGetLastError() << std::endl;
-            closesocket(ListenSocket);
-            WSACleanup();
-            return {};
-        }
-        else
-        {
-            ClientSockets.push_back(socketClient);
-            char host[NI_MAXHOST];
-            inet_ntop(AF_INET, &clientInfo.sin_addr,host, NI_MAXHOST);
-            int port = ntohs(clientInfo.sin_port);
-
-            std::string hostStr(host);
-            std::string portStr = std::to_string(port);
-            std::cout << "Client connected: " << host << " on port " << port << std::endl;
-
-            ConnectInfo connectInfo(hostStr, portStr);
-            connectInfo.SetIsConnected(true);
-            return connectInfo;
-
-
-        }
-
+        ConnectionInfo connectInfo(hostStr, portStr);
+        connectInfo.SetIsConnected(true);
+        return connectInfo;
+    }
 }
 
 void ServerSocket::Send(const std::string& answer)
@@ -143,4 +150,9 @@ void ServerSocket::Receive()
 std::string ServerSocket::ReadBuffer()
 {
     return std::string(recvbuf);
+}
+
+bool ServerSocket::IsValid()
+{
+    return ListenSocket != INVALID_SOCKET;
 }
