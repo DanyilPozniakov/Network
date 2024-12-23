@@ -28,7 +28,7 @@ public:
 
     void InitializeSocket();
     void Close();
-    ConnectionInfo Listen();
+    void Listen();
     void Send(const std::string& answer);
     void Receive();
 
@@ -48,7 +48,8 @@ private:
     addrinfo* result = nullptr;
     SOCKET ListenSocket = INVALID_SOCKET;
     WSADATA wsaData{};
-    int iResult = 0;
+    FD_SET readFds;
+    FD_SET writeFds;
 
     bool socket_initialized = false;
 

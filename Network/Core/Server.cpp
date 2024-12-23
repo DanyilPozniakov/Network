@@ -80,8 +80,9 @@ void Server::Listener()
 
     while(isRunning.load())
     {
-        auto connectInfo = serverSocket->Listen();
-        AddConnection(connectInfo);
+        serverSocket->Listen();
+        // auto connectInfo = serverSocket->Listen();
+        // AddConnection(connectInfo);
     }
 }
 
