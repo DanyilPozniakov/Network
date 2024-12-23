@@ -36,16 +36,19 @@ void Server::Run()
      */
     if(serverSocket->IsValid())
     {
-        listener = std::thread([this]{ serverSocket->Listen(); });
+        listener        = std::make_unique<std::thread>(&Server::Listener, this);
+        receiver        = std::make_unique<std::thread>(&Server::Receiver, this);
+        isRunning.store(true);
+        //messageReader   = std::make_unique<std::thread>(&Server::ReadAndShowMessages, this);
     }
-
-    receiver = std::thread([this]{ serverSocket->Receive(); });
 
     while(isRunning.load())
     {
-        //TODO: Add conditional variable or signal
-        std::string message = serverSocket->ReadBuffer();
+        std::string message = GetMassage();
+        std::cout << message << std::endl;
     }
+
+
 }
 
 void Server::StopServer()
@@ -53,8 +56,8 @@ void Server::StopServer()
     /**
      * @brief This function is used to stop the server.
      */
-    isRunning.store(false);
-    listener.join();
+    isRunning.store(false, std::memory_order_release);
+    listener->join();
     serverSocket->Close();
 }
 
@@ -74,19 +77,51 @@ void Server::Listener()
      *
      * @param isRunning
      */
+
     while(isRunning.load())
     {
         auto connectInfo = serverSocket->Listen();
         AddConnection(connectInfo);
     }
+}
 
+void Server::Receiver()
+{
+    serverSocket->Receive();
+    std::cerr << "Receiver stopped" << std::endl;
+}
+
+std::string Server::GetMassage()
+{
+    std::unique_lock queue_lock(serverSocket->queue_mtx);
+    serverSocket->massageReceived_cv.wait(queue_lock,[this]() { return !serverSocket->messages.empty(); });
+    auto mess = serverSocket->messages.front();
+    if(!mess.empty())
+    {
+        serverSocket->messages.pop();
+        return mess;
+    }
+    return "";
 
 }
+
+
 
 void Server::AddConnection(const ConnectionInfo& connection)
 {
     std::lock_guard lock(connection_info_mtx);
     connections.push_back(connection);
+}
+
+void Server::ReadAndShowMessages()
+{
+    std::cout << "ReadAndShowMessages" << std::endl;
+    while(isRunning.load())
+    {
+        std::string message = GetMassage();
+        std::cout << message << std::endl;
+    }
+    std::cerr << "ReadAndShowMessages stopped" << std::endl;
 }
 
 

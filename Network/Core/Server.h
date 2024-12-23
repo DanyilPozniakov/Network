@@ -8,6 +8,8 @@
 #include <ServerSocket.h>
 #include <thread>
 #include <atomic>
+#include <memory>
+#include <queue>
 
 //TODO: CLI!!!
 
@@ -24,14 +26,17 @@ public:
     void Run();
     void StopServer();
     void Restart();
-    void Listener();
 
     void AddConnection(const ConnectionInfo& connection);
 
+
+    void ReadAndShowMessages();
+
 protected:
     ServerSocket* serverSocket;
-    std::thread listener;
-    std::thread receiver;
+    std::unique_ptr<std::thread> listener;
+    std::unique_ptr<std::thread> receiver;
+    std::unique_ptr<std::thread> messageReader;
 
 private:
     std::atomic<bool> isRunning = false;
@@ -39,6 +44,12 @@ private:
 
     std::string host;
     std::string port;
+
+    void Listener();
+    void Receiver();
+    std::string GetMassage();
+
+
 };
 
 

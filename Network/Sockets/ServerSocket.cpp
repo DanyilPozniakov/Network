@@ -3,9 +3,11 @@
 //
 #include <iostream>
 #include "ServerSocket.h"
-
+#include <mutex>
 #include "ClientSocket.h"
 
+std::mutex buff_mtx;
+std::mutex init_mtx;
 
 ServerSocket::ServerSocket(const std::string& host, const std::string& port)
 {
@@ -88,7 +90,7 @@ ConnectionInfo ServerSocket::Listen()
     int infoSize = sizeof(clientInfo);
     std::cout << "Waiting for client connection..." << std::endl;
     auto socketClient = accept(ListenSocket, reinterpret_cast<sockaddr*>(&clientInfo), &infoSize);
-    std::cout <<  "accepted! " << std::endl;
+    std::cout << "accepted! " << std::endl;
     if (socketClient == INVALID_SOCKET)
     {
         std::cout << "accept failed: " << WSAGetLastError() << std::endl;
@@ -109,6 +111,12 @@ ConnectionInfo ServerSocket::Listen()
 
         ConnectionInfo connectInfo(hostStr, portStr);
         connectInfo.SetIsConnected(true);
+
+        {
+            std::lock_guard lock(init_mtx);
+            socket_initialized = true;
+        }
+        socket_valid_cv.notify_all();
         return connectInfo;
     }
 }
@@ -121,17 +129,31 @@ void ServerSocket::Send(const std::string& answer)
 
 void ServerSocket::Receive()
 {
+    int bytesrecv;
+
+    {
+        std::unique_lock init_lock(init_mtx);
+        socket_valid_cv.wait(init_lock, [this]() { return socket_initialized; });
+    }
+
     while (true)
     {
-        int bytesrecv = recv(ClientSockets[0], recvbuf, sizeof(recvbuf), 0);
+        {
+            std::lock_guard lock(buff_mtx);
+            bytesrecv = recv(ClientSockets[0], recvbuf.data(), recvbuf.size(), 0);
+        }
+
         if (bytesrecv > 0)
         {
-            recvbuf[bytesrecv] = '\0';
-            //TODO: Add signal new message received
-
-
-            Send("Message received" + std::string(recvbuf));
-            std::cout << "Massage received: " << recvbuf << std::endl;
+            {
+                std::lock_guard lock_buff(buff_mtx);
+                recvbuf[bytesrecv] = '\0';
+                {
+                    std::lock_guard lock_queue(queue_mtx);
+                    messages.emplace(recvbuf.data());
+                }
+            }
+            massageReceived_cv.notify_all();
         }
         else if (bytesrecv == 0)
         {
@@ -147,10 +169,12 @@ void ServerSocket::Receive()
 }
 
 
-std::string ServerSocket::ReadBuffer()
+std::string ServerSocket::GetBufferData()
 {
-    return std::string(recvbuf);
+    std::lock_guard lock(buff_mtx);
+    return {recvbuf.data()};
 }
+
 
 bool ServerSocket::IsValid()
 {
