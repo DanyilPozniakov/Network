@@ -86,8 +86,6 @@ void ServerSocket::ClosesSocket()
 
 void ServerSocket::Listen()
 {
-
-
     while (true)
     {
         FD_SET listenFds;
