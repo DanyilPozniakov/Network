@@ -11,21 +11,27 @@ class ConnectionInfo {
 
 public:
     ConnectionInfo() = default;
-    ConnectionInfo(std::string&  host, std::string&  port);
+    ConnectionInfo(std::string&  host, int port);
+    ConnectionInfo(const char* host,int port);
+    ~ConnectionInfo() = default;
 
+    void SetIsConnected(bool is_connected);
     [[nodiscard]] bool IsValid() const;
     [[nodiscard]] bool IsConnected() const;
-    void SetIsConnected(bool is_connected);
 
     [[nodiscard]] std::string GetHost() const;
-    [[nodiscard]] std::string GetPort() const;
+    [[nodiscard]] int GetPort() const;
     [[nodiscard]] std::string GetName() const;
+
     [[nodiscard]] std::time_t GetStartTime() const;
     [[nodiscard]] std::time_t GetEndTime() const;
     [[nodiscard]] std::time_t GetDuration() const;
+    [[nodiscard]] std::time_t GetCurrentLocalTime() const;
+
     [[nodiscard]] std::string GetStartTimeStr() const;
     [[nodiscard]] std::string GetEndTimeStr() const;
     [[nodiscard]] std::string GetDurationStr() const;
+
 
 protected:
     void SetId(int id);
@@ -40,13 +46,13 @@ protected:
 
 private:
     std::string host;
-    std::string port;
     std::string name;
     std::time_t start_time = 0;
     std::time_t end_time = 0;
     std::time_t duration = 0;
 
     int id = 0;
+    int port = 0;
     int request_count = 0;
     int response_count = 0;
     int error_count = 0;

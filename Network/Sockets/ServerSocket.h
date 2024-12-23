@@ -13,12 +13,16 @@
 #include <string>
 #include <vector>
 #include <ConnectionInfo.h>
+#include <map>
 #include <queue>
 
 #pragma comment(lib, "Ws2_32.lib")
 
 #define DEFAULT_PORT "0808"
 #define DEFAULT_HOST "localhost"
+
+
+
 
 class ServerSocket {
     friend class Server;
@@ -27,7 +31,7 @@ public:
     virtual ~ServerSocket();
 
     void InitializeSocket();
-    void Close();
+    void ClosesSocket();
     void Listen();
     void Send(const std::string& answer);
     void Receive();
@@ -37,10 +41,13 @@ public:
     bool IsValid();
 
 protected:
-    std::vector<SOCKET>     ClientSockets = {};
-    std::queue<std::string> messages;
+    std::map<int,SOCKET>        clientSockets = {};
+    std::queue<std::string>     messages;
+    std::vector<ConnectionInfo> connections;
+
     std::condition_variable massageReceived_cv;
     std::condition_variable socket_valid_cv;
+    std::condition_variable socket_init_cv;
     std::mutex queue_mtx;
 
 
@@ -51,9 +58,11 @@ private:
     FD_SET readFds;
     FD_SET writeFds;
 
-    bool socket_initialized = false;
+    int client_socket_initialized = 0;
 
     std::array<char, 1024> recvbuf{};
+
+    int serial = 0;
 
 };
 
