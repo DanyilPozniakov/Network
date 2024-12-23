@@ -84,41 +84,93 @@ void ServerSocket::Close()
     std::cout << "ServerSocket closed!" << std::endl;
 }
 
-ConnectionInfo ServerSocket::Listen()
+void ServerSocket::Listen()
 {
-    sockaddr_in clientInfo;
-    int infoSize = sizeof(clientInfo);
-    std::cout << "Waiting for client connection..." << std::endl;
-    auto socketClient = accept(ListenSocket, reinterpret_cast<sockaddr*>(&clientInfo), &infoSize);
-    std::cout << "accepted! " << std::endl;
-    if (socketClient == INVALID_SOCKET)
+    while (true)
     {
-        std::cout << "accept failed: " << WSAGetLastError() << std::endl;
-        closesocket(ListenSocket);
-        WSACleanup();
-        return {};
-    }
-    else
-    {
-        ClientSockets.push_back(socketClient);
-        char host[NI_MAXHOST];
-        inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
-        int port = ntohs(clientInfo.sin_port);
-
-        std::string hostStr(host);
-        std::string portStr = std::to_string(port);
-        std::cout << "Client connected: " << host << " on port " << port << std::endl;
-
-        ConnectionInfo connectInfo(hostStr, portStr);
-        connectInfo.SetIsConnected(true);
-
+        FD_ZERO(&readFds);
+        FD_SET(ListenSocket, &readFds);
+        for (const auto& ClientSocket : ClientSockets)
         {
+            FD_SET(ClientSocket, &writeFds);
+        }
+        for (const auto& ClientSocket : ClientSockets)
+        {
+            FD_SET(ClientSocket, &readFds);
+        }
+
+        timeval timeout{1,0};
+
+        int result = select(0, &readFds, &writeFds, nullptr, &timeout);
+
+        if(result == SOCKET_ERROR)
+        {
+            std::cout << "select failed: " << WSAGetLastError() << std::endl;
+            return;
+        }
+
+        if(FD_ISSET(ListenSocket, &readFds))
+        {
+            sockaddr_in clientInfo;
+            int infoSize = sizeof(clientInfo);
+            SOCKET ClientSocket = accept(ListenSocket, reinterpret_cast<sockaddr*>(&clientInfo), &infoSize);
+            if (ClientSocket == INVALID_SOCKET)
+            {
+                std::cerr << "accept failed: " << WSAGetLastError() << std::endl;
+            }
+
+            //TODO: Add error handling
+
+
             std::lock_guard lock(init_mtx);
             socket_initialized = true;
+
         }
-        socket_valid_cv.notify_all();
-        return connectInfo;
+
     }
+
+
+
+
+
+
+
+
+
+
+    // sockaddr_in clientInfo;
+    // int infoSize = sizeof(clientInfo);
+    // std::cout << "Waiting for client connection..." << std::endl;
+    // auto socketClient = accept(ListenSocket, reinterpret_cast<sockaddr*>(&clientInfo), &infoSize);
+    // std::cout << "accepted! " << std::endl;
+    // if (socketClient == INVALID_SOCKET)
+    // {
+    //     std::cout << "accept failed: " << WSAGetLastError() << std::endl;
+    //     closesocket(ListenSocket);
+    //     WSACleanup();
+    //     return {};
+    // }
+    // else
+    // {
+    //     ClientSockets.push_back(socketClient);
+    //     char host[NI_MAXHOST];
+    //     inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
+    //     int port = ntohs(clientInfo.sin_port);
+    //
+    //     std::string hostStr(host);
+    //     std::string portStr = std::to_string(port);
+    //     std::cout << "Client connected: " << host << " on port " << port << std::endl;
+    //
+    //     ConnectionInfo connectInfo(hostStr, portStr);
+    //     connectInfo.SetIsConnected(true);
+    //
+    //     {
+    //         std::lock_guard lock(init_mtx);
+    //         socket_initialized = true;
+    //     }
+    //     socket_valid_cv.notify_all();
+    //     return connectInfo;
+    // }
 }
 
 void ServerSocket::Send(const std::string& answer)
