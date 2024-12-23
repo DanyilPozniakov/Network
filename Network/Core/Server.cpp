@@ -58,7 +58,7 @@ void Server::StopServer()
      */
     isRunning.store(false, std::memory_order_release);
     listener->join();
-    serverSocket->Close();
+    serverSocket->ClosesSocket();
 }
 
 void Server::Restart()

@@ -16,16 +16,23 @@ void ConnectionInfo::AddRequest()
     this->request_count++;
 }
 
-ConnectionInfo::ConnectionInfo(std::string&  host, std::string&  port)
-    : host(std::move(host)), port(std::move(port))
+ConnectionInfo::ConnectionInfo(std::string&  host, int  port)
+    : host(std::move(host)), port(port)
 {
+    auto time = std::time(nullptr);
+    start_time = std::mktime(std::localtime(&time));
+}
+
+ConnectionInfo::ConnectionInfo(const char* host, int port)
+{
+    std::string hostStr(host);
     auto time = std::time(nullptr);
     start_time = std::mktime(std::localtime(&time));
 }
 
 bool ConnectionInfo::IsValid() const
 {
-    return port.empty() || host.empty();
+    return port || host.empty();
 }
 
 bool ConnectionInfo::IsConnected() const
@@ -46,6 +53,12 @@ std::time_t ConnectionInfo::GetEndTime() const
 std::time_t ConnectionInfo::GetDuration() const
 {
     return duration;
+}
+
+std::time_t ConnectionInfo::GetCurrentLocalTime() const
+{
+    auto time = std::time(nullptr);
+    return std::mktime(std::localtime(&time));
 }
 
 std::string ConnectionInfo::GetStartTimeStr() const
@@ -105,7 +118,7 @@ std::string ConnectionInfo::GetHost() const
     return host;
 }
 
-std::string ConnectionInfo::GetPort() const
+int ConnectionInfo::GetPort() const
 {
     return port;
 }

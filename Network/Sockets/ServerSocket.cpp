@@ -37,7 +37,7 @@ ServerSocket::ServerSocket(const std::string& host, const std::string& port)
 
 ServerSocket::~ServerSocket()
 {
-    Close();
+    ClosesSocket();
     WSACleanup();
 }
 
@@ -74,12 +74,12 @@ void ServerSocket::InitializeSocket()
 }
 
 
-void ServerSocket::Close()
+void ServerSocket::ClosesSocket()
 {
     closesocket(ListenSocket);
-    for (const auto& ClientSocket : ClientSockets)
+    for (const auto& ClientSocket : clientSockets)
     {
-        closesocket(ClientSocket);
+        closesocket(ClientSocket.second);
     }
     std::cout << "ServerSocket closed!" << std::endl;
 }
@@ -88,28 +88,19 @@ void ServerSocket::Listen()
 {
     while (true)
     {
-        FD_ZERO(&readFds);
-        FD_SET(ListenSocket, &readFds);
-        for (const auto& ClientSocket : ClientSockets)
+        FD_SET listenFds;
+        FD_ZERO(&listenFds);
+        FD_SET(ListenSocket, &listenFds);
+        timeval timeout{1, 0};
+        int result = select(0, &listenFds, nullptr, nullptr, &timeout);
+        if (result == SOCKET_ERROR)
         {
-            FD_SET(ClientSocket, &writeFds);
-        }
-        for (const auto& ClientSocket : ClientSockets)
-        {
-            FD_SET(ClientSocket, &readFds);
-        }
-
-        timeval timeout{1,0};
-
-        int result = select(0, &readFds, &writeFds, nullptr, &timeout);
-
-        if(result == SOCKET_ERROR)
-        {
-            std::cout << "select failed: " << WSAGetLastError() << std::endl;
+            std::cerr << "Listen socket failed: " << WSAGetLastError() << std::endl;
+            //TODO:: Add error handling, signal to the main thread -> stop the server
             return;
         }
 
-        if(FD_ISSET(ListenSocket, &readFds))
+        if (FD_ISSET(ListenSocket, &listenFds))
         {
             sockaddr_in clientInfo;
             int infoSize = sizeof(clientInfo);
@@ -117,107 +108,112 @@ void ServerSocket::Listen()
             if (ClientSocket == INVALID_SOCKET)
             {
                 std::cerr << "accept failed: " << WSAGetLastError() << std::endl;
+                //TODO: Add error handling, signal to the main thread
             }
+            clientSockets[serial++] = ClientSocket;
 
-            //TODO: Add error handling
-
-
-            std::lock_guard lock(init_mtx);
-            socket_initialized = true;
-
+            //Creating and save a connection info
+            char host[NI_MAXHOST];
+            int port = ntohs(clientInfo.sin_port);
+            inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
+            {
+                ConnectionInfo connectInfo(host, port);
+                std::lock_guard lock(init_mtx);
+                connections.push_back(connectInfo);
+                client_socket_initialized = static_cast<int>(connections.size());
+                socket_init_cv.notify_all();
+            }
         }
-
     }
-
-
-
-
-
-
-
-
-
-
-    // sockaddr_in clientInfo;
-    // int infoSize = sizeof(clientInfo);
-    // std::cout << "Waiting for client connection..." << std::endl;
-    // auto socketClient = accept(ListenSocket, reinterpret_cast<sockaddr*>(&clientInfo), &infoSize);
-    // std::cout << "accepted! " << std::endl;
-    // if (socketClient == INVALID_SOCKET)
-    // {
-    //     std::cout << "accept failed: " << WSAGetLastError() << std::endl;
-    //     closesocket(ListenSocket);
-    //     WSACleanup();
-    //     return {};
-    // }
-    // else
-    // {
-    //     ClientSockets.push_back(socketClient);
-    //     char host[NI_MAXHOST];
-    //     inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
-    //     int port = ntohs(clientInfo.sin_port);
-    //
-    //     std::string hostStr(host);
-    //     std::string portStr = std::to_string(port);
-    //     std::cout << "Client connected: " << host << " on port " << port << std::endl;
-    //
-    //     ConnectionInfo connectInfo(hostStr, portStr);
-    //     connectInfo.SetIsConnected(true);
-    //
-    //     {
-    //         std::lock_guard lock(init_mtx);
-    //         socket_initialized = true;
-    //     }
-    //     socket_valid_cv.notify_all();
-    //     return connectInfo;
-    // }
 }
 
 void ServerSocket::Send(const std::string& answer)
 {
-    send(ClientSockets[0], answer.c_str(), answer.size(), 0);
+    send(clientSockets[0], answer.c_str(), answer.size(), 0);
 }
 
 
 void ServerSocket::Receive()
 {
-    int bytesrecv;
-
+    FD_SET readFds;
+    FD_ZERO(&readFds);
+    for (const auto& socket : clientSockets)
     {
-        std::unique_lock init_lock(init_mtx);
-        socket_valid_cv.wait(init_lock, [this]() { return socket_initialized; });
+        FD_SET(socket.second, &readFds);
     }
 
-    while (true)
+    timeval timeout{1, 0};
+    int valid_sockets = select(0, &readFds, nullptr, nullptr, &timeout);
+    if (valid_sockets == SOCKET_ERROR)
     {
-        {
-            std::lock_guard lock(buff_mtx);
-            bytesrecv = recv(ClientSockets[0], recvbuf.data(), recvbuf.size(), 0);
-        }
+        std::cerr << "select failed: " << WSAGetLastError() << std::endl;
+        //TODO: Add error handling, signal to the main thread
+    }
 
-        if (bytesrecv > 0)
+
+    for (auto &socket : clientSockets)
+    {
+        if(FD_ISSET(socket.second,&readFds))
         {
+            int bytesrecv = recv(socket.second, recvbuf.data(), recvbuf.size(), 0);
+            if(bytesrecv > 0)
             {
-                std::lock_guard lock_buff(buff_mtx);
+                std::lock_guard lock(buff_mtx);
                 recvbuf[bytesrecv] = '\0';
                 {
-                    std::lock_guard lock_queue(queue_mtx);
+                    std::lock_guard lock(queue_mtx);
                     messages.emplace(recvbuf.data());
                 }
+                massageReceived_cv.notify_all();
             }
-            massageReceived_cv.notify_all();
-        }
-        else if (bytesrecv == 0)
-        {
-            std::cout << "connection closed" << std::endl;
-            break;
+            if(bytesrecv == 0)
+            {
+                std::cerr << "connection closed" << std::endl;
+                //TODO: Add error handling, signal to the main thread
+                break;
+            }
+            else
+            {
+                std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
+            }
         }
         else
         {
-            std::cout << "recv failed: " << WSAGetLastError() << std::endl;
-            break;
+            //TODO: Add handling for the case when the socket is not ready to read
         }
     }
+
+    // while (true)
+    // {
+    //     {
+    //         std::lock_guard lock(buff_mtx);
+    //         bytesrecv = recv(clientSockets[0], recvbuf.data(), recvbuf.size(), 0);
+    //     }
+    //
+    //     if (bytesrecv > 0)
+    //     {
+    //         {
+    //             std::lock_guard lock_buff(buff_mtx);
+    //             recvbuf[bytesrecv] = '\0';
+    //             {
+    //                 std::lock_guard lock_queue(queue_mtx);
+    //                 messages.emplace(recvbuf.data());
+    //             }
+    //         }
+    //         massageReceived_cv.notify_all();
+    //     }
+    //     else if (bytesrecv == 0)
+    //     {
+    //         std::cout << "connection closed" << std::endl;
+    //         break;
+    //     }
+    //     else
+    //     {
+    //         std::cout << "recv failed: " << WSAGetLastError() << std::endl;
+    //         break;
+    //     }
+    // }
+
 }
 
 
