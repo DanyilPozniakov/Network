@@ -4,8 +4,9 @@
 
 #ifndef CONNECTION_H
 #define CONNECTION_H
+#include <ISocket.h>
 #include <ConnectionInfo.h>
-#include <ServerSocket.h>
+#include <WindowsServerSocket.h>
 #include <thread>
 #include <atomic>
 #include <memory>
@@ -33,7 +34,9 @@ public:
     void ReadAndShowMessages();
 
 protected:
-    ServerSocket* serverSocket;
+    ISocket* serverSocket;
+    WindowsServerSocket* windowsServerSocket;
+
     std::unique_ptr<std::thread> listener;
     std::unique_ptr<std::thread> receiver;
     std::unique_ptr<std::thread> messageReader;

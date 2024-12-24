@@ -3,9 +3,9 @@
 //
 
 #include <iostream>
-#include "ClientSocket.h"
+#include "WindowsClientSocket.h"
 
-ClientSocket::ClientSocket(const std::string& host, const std::string& port)
+WindowsClientSocket::WindowsClientSocket(const std::string& host, const std::string& port)
 {
     addrinfo hints{};
     if(WSAStartup(MAKEWORD(2,2), &wsaData) != 0) //TODO: Add error handling
@@ -33,12 +33,12 @@ ClientSocket::ClientSocket(const std::string& host, const std::string& port)
 
 }
 
-ClientSocket::~ClientSocket()
+WindowsClientSocket::~WindowsClientSocket()
 {
-    ClientSocket::Cleanup();
+    WindowsClientSocket::Cleanup();
 }
 
-void ClientSocket::ConnectToServer()
+void WindowsClientSocket::ConnectToServer()
 {
     if(connect(ConnectSocket,result->ai_addr,result->ai_addrlen) == SOCKET_ERROR)
     {
@@ -52,17 +52,17 @@ void ClientSocket::ConnectToServer()
 
 }
 
-void ClientSocket::Disconnect()
+void WindowsClientSocket::Disconnect()
 {
 }
 
-int ClientSocket::Send(const std::string& request)
+int WindowsClientSocket::Send(const std::string& request)
 {
     int bytes_send = send(ConnectSocket, request.c_str(), request.size(),0);
     return bytes_send;
 }
 
-void ClientSocket::Resave()
+void WindowsClientSocket::Resave()
 {
     //TODO: Add resaving logic...
     while(true)
@@ -90,7 +90,7 @@ void ClientSocket::Resave()
 
 }
 
-void ClientSocket::Cleanup() const
+void WindowsClientSocket::Cleanup() const
 {
     if(result != nullptr)
     {
