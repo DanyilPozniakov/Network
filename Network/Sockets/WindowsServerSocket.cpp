@@ -111,7 +111,7 @@ void WindowsServerSocket::Listen()
                 std::cerr << "accept failed: " << WSAGetLastError() << std::endl;
                 //TODO: Add error handling, signal to the main thread
             }
-            clientSockets.push_back({ClientSocket, ++serial});
+            clientSockets.push_back({{},{},ClientSocket, serial++});
 
             //Creating and save a connection info
             char host[NI_MAXHOST];
@@ -121,7 +121,6 @@ void WindowsServerSocket::Listen()
                 ConnectionInfo connectInfo(host, port);
                 std::lock_guard lock(client_init_mtx);
                 connections.push_back(connectInfo);
-                client_socket_initialized = static_cast<int>(connections.size());
                 client_socket_init_cv.notify_all();
             }
         }
@@ -134,86 +133,146 @@ void WindowsServerSocket::Send(const std::string& answer, int id)
 }
 
 
-void WindowsServerSocket::Receive()
+void WindowsServerSocket::RunSocketIO()
 {
-    while (true)
+    while (isRunning.load())
     {
-        std::unique_lock lock(client_init_mtx);
         if (clientSockets.empty())
         {
-            std::cout << "Receive waiting for the client to be initialized" << std::endl;
-            client_socket_init_cv.wait(lock, [this]() { return client_socket_initialized > 0; });
-            lock.unlock();
+            std::cerr << "No clients connected, waiting for the client...." << std::endl;
+            std::unique_lock lock(client_init_mtx);
+            client_socket_init_cv.wait(lock, [this]() { return !clientSockets.empty(); });
+            std::cout << "Client connected! RunSocketIO started" << std::endl;
         }
-        while (true)
+        FD_SET readFds, writesFds;
+        FD_ZERO(&readFds);
+        FD_ZERO(&writesFds);
+
+        for (const auto& socket : clientSockets)
         {
-            if (clientSockets.empty())
-            {
-                client_socket_initialized = 0;
-                //TODO: Cover the problem with  connection lost and reconnection, rewrite the logic!!!!
-                std::cerr << "No clients connected" << std::endl;
-                break;
-            }
+            FD_SET(socket.socket, &readFds);
+            FD_SET(socket.socket, &writesFds);
+        }
 
-            FD_SET readFds;
-            FD_ZERO(&readFds);
-            for (const auto& socket : clientSockets)
-            {
-                FD_SET(socket.socket, &readFds);
-            }
+        timeval timeout{0, 500};
+        int valid_sockets = select(0, &readFds, &writesFds, nullptr, &timeout);
+        if (valid_sockets == SOCKET_ERROR) std::cerr << "Select failed: " << WSAGetLastError() << std::endl;
 
-            timeval timeout{1, 0};
-            int valid_sockets = select(0, &readFds, nullptr, nullptr, &timeout);
-            if (valid_sockets == SOCKET_ERROR)
+        for (auto iter = clientSockets.begin(); iter != clientSockets.end();)
+        {
+            if (FD_ISSET(iter->socket, &readFds))
             {
-                std::cerr << "select failed: " << WSAGetLastError() << std::endl;
-                //TODO: Add error handling, signal to the main thread
-            }
-
-
-            for (auto iter = clientSockets.begin(); iter != clientSockets.end();)
-            {
-                SOCKET clientSocket = iter->socket;
-                if (FD_ISSET(clientSocket, &readFds))
+                int bytesrecv = recv(iter->socket, recvbuf.data(), recvbuf.size(), 0);
+                if (bytesrecv > 0)
                 {
-                    int bytesrecv = recv(clientSocket, recvbuf.data(), recvbuf.size(), 0);
-                    if (bytesrecv > 0)
+                    std::lock_guard lock_buff(buff_mtx);
+                    recvbuf[bytesrecv] = '\0';
                     {
-                        std::lock_guard lock(buff_mtx);
-                        recvbuf[bytesrecv] = '\0';
-                        {
-                            std::lock_guard lock(queue_mtx);
-                            messages.emplace(recvbuf.data());
-                        }
-                        massageReceived_cv.notify_all();
-                        ++iter;
+                        std::lock_guard lock_message_queue(queue_mtx);
+                        clientSockets[iter->id].incomingMessages.emplace(recvbuf.data());
                     }
-                    else if (bytesrecv == 0)
-                    {
-                        std::cerr << "connection closed" << std::endl;
-                        lock.lock();
-                        iter = clientSockets.erase(iter);
-                        --client_socket_initialized;
-                        //TODO: Add error handling, signal to the main thread
-                        lock.unlock();
-                    }
-                    else
-                    {
-                        std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
-                        lock.lock();
-                        iter = clientSockets.erase(iter);
-                        --client_socket_initialized;
-                        //TODO: Add error handling, signal to the main thread
-                        lock.unlock();
-                    }
+                    massageReceived_cv.notify_all();
+                    ++iter;
+                }
+                else if (bytesrecv == 0)
+                {
+                    std::cerr << "Connection closed" << std::endl;
+                    std::lock_guard lock_buff(client_init_mtx);
+                    iter = clientSockets.erase(iter);
                 }
                 else
                 {
-                    ++iter;
-                    //TODO: Add handling for the case when the socket is not ready to read
+                    std::cerr << "Recv failed: " << WSAGetLastError() << std::endl;
+                    std::lock_guard lock_buff(client_init_mtx);
+                    iter = clientSockets.erase(iter);
                 }
             }
+            if (FD_ISSET(iter->socket, &writesFds))
+            {
+                //TODO: Add the logic for sending the messages
+            }
         }
+
+
+        // while (true)
+        // {
+        //     std::unique_lock lock(client_init_mtx);
+        //     if (clientSockets.empty())
+        //     {
+        //         std::cout << "RunSocketIO waiting for the client to be initialized" << std::endl;
+        //         client_socket_init_cv.wait(lock, [this]() { return client_socket_initialized > 0; });
+        //         lock.unlock();
+        //     }
+        //     while (true)
+        //     {
+        //         if (clientSockets.empty())
+        //         {
+        //             client_socket_initialized = 0;
+        //             //TODO: Cover the problem with  connection lost and reconnection, rewrite the logic!!!!
+        //             std::cerr << "No clients connected" << std::endl;
+        //             break;
+        //         }
+        //
+        //         FD_SET readFds;
+        //         FD_ZERO(&readFds);
+        //         for (const auto& socket : clientSockets)
+        //         {
+        //             FD_SET(socket.socket, &readFds);
+        //         }
+        //
+        //         timeval timeout{1, 0};
+        //         int valid_sockets = select(0, &readFds, nullptr, nullptr, &timeout);
+        //         if (valid_sockets == SOCKET_ERROR)
+        //         {
+        //             std::cerr << "select failed: " << WSAGetLastError() << std::endl;
+        //             //TODO: Add error handling, signal to the main thread
+        //         }
+        //
+        //
+        //         for (auto iter = clientSockets.begin(); iter != clientSockets.end();)
+        //         {
+        //             SOCKET clientSocket = iter->socket;
+        //             if (FD_ISSET(clientSocket, &readFds))
+        //             {
+        //                 int bytesrecv = recv(clientSocket, recvbuf.data(), recvbuf.size(), 0);
+        //                 if (bytesrecv > 0)
+        //                 {
+        //                     std::lock_guard lock(buff_mtx);
+        //                     recvbuf[bytesrecv] = '\0';
+        //                     {
+        //                         std::lock_guard lock(queue_mtx);
+        //                         messages.emplace(recvbuf.data());
+        //                     }
+        //                     massageReceived_cv.notify_all();
+        //                     ++iter;
+        //                 }
+        //                 else if (bytesrecv == 0)
+        //                 {
+        //                     std::cerr << "connection closed" << std::endl;
+        //                     lock.lock();
+        //                     iter = clientSockets.erase(iter);
+        //                     --client_socket_initialized;
+        //                     //TODO: Add error handling, signal to the main thread
+        //                     lock.unlock();
+        //                 }
+        //                 else
+        //                 {
+        //                     std::cerr << "recv failed: " << WSAGetLastError() << std::endl;
+        //                     lock.lock();
+        //                     iter = clientSockets.erase(iter);
+        //                     --client_socket_initialized;
+        //                     //TODO: Add error handling, signal to the main thread
+        //                     lock.unlock();
+        //                 }
+        //             }
+        //             else
+        //             {
+        //                 ++iter;
+        //                 //TODO: Add handling for the case when the socket is not ready to read
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 

@@ -93,7 +93,7 @@ void Server::Listener()
 
 void Server::Receiver()
 {
-    serverSocket->Receive();
+    serverSocket->RunSocketIO();
     std::cerr << "Receiver stopped" << std::endl;
 }
 

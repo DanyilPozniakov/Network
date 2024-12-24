@@ -16,7 +16,7 @@ public:
     virtual ~ISocket() = default;
 
     virtual void Send(const std::string& request, int id) = 0;
-    virtual void Receive() = 0;
+    virtual void RunSocketIO() = 0;
     virtual void InitializeSocket() = 0;
     virtual void ClosesSocket() = 0;
 

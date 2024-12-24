@@ -12,6 +12,7 @@
 #include <ConnectionInfo.h>
 #include <queue>
 #include <ISocket.h>
+#include <atomic>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -21,8 +22,10 @@
 
 struct SocketInfo
 {
-    SOCKET socket;
-    int id;
+    std::queue<std::string>     incomingMessages;
+    std::queue<std::string>     outgoingMessages;
+    SOCKET socket{};
+    int id{};
 };
 
 class WindowsServerSocket : public ISocket {
@@ -32,7 +35,7 @@ public:
     ~WindowsServerSocket() override;
 
     void Send(const std::string& answer, int id) override;
-    void Receive() override;
+    void RunSocketIO() override;
     void InitializeSocket() override;
     void ClosesSocket() override;
     void Listen();
@@ -43,14 +46,14 @@ public:
     bool IsValid();
 
 protected:
-    std::queue<std::string>     messages;
     std::queue<std::string>     errors;
 
     std::vector<SocketInfo>     clientSockets;
     std::vector<ConnectionInfo> connections;
 
+
+    std::atomic<bool> isRunning = false;
     std::condition_variable massageReceived_cv;
-    std::condition_variable socket_valid_cv;
     std::condition_variable client_socket_init_cv;
     std::mutex queue_mtx;
 
@@ -59,13 +62,8 @@ private:
     addrinfo* result = nullptr;
     SOCKET ListenSocket = INVALID_SOCKET;
     WSADATA wsaData{};
-    FD_SET readFds;
-    FD_SET writeFds;
-
-    int client_socket_initialized = 0;
 
     std::array<char, 1024> recvbuf{};
-
     int serial = 0;
 
 };
