@@ -7,14 +7,11 @@
 
 #include <array>
 #include <condition_variable>
-#include <winsock2.h>
-#include <windows.h>
-#include <ws2tcpip.h>
 #include <string>
 #include <vector>
 #include <ConnectionInfo.h>
-#include <map>
 #include <queue>
+#include <ISocket.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -22,32 +19,39 @@
 #define DEFAULT_HOST "localhost"
 
 
+struct SocketInfo
+{
+    SOCKET socket;
+    int id;
+};
 
-
-class ServerSocket {
+class WindowsServerSocket : public ISocket {
     friend class Server;
 public:
-    explicit ServerSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
-    virtual ~ServerSocket();
+    explicit WindowsServerSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
+    ~WindowsServerSocket() override;
 
-    void InitializeSocket();
-    void ClosesSocket();
+    void Send(const std::string& answer, int id) override;
+    void Receive() override;
+    void InitializeSocket() override;
+    void ClosesSocket() override;
     void Listen();
-    void Send(const std::string& answer);
-    void Receive();
+
 
     std::string GetBufferData();
 
     bool IsValid();
 
 protected:
-    std::map<int,SOCKET>        clientSockets = {};
     std::queue<std::string>     messages;
+    std::queue<std::string>     errors;
+
+    std::vector<SocketInfo>     clientSockets;
     std::vector<ConnectionInfo> connections;
 
     std::condition_variable massageReceived_cv;
     std::condition_variable socket_valid_cv;
-    std::condition_variable socket_init_cv;
+    std::condition_variable client_socket_init_cv;
     std::mutex queue_mtx;
 
 

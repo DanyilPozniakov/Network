@@ -15,10 +15,10 @@
 #define DEFAULT_PORT "0808"
 #define DEFAULT_HOST "localhost"
 
-class ClientSocket {
+class WindowsClientSocket {
 public:
-    explicit  ClientSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
-    virtual ~ClientSocket();
+    explicit  WindowsClientSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
+    virtual ~WindowsClientSocket();
 
     void ConnectToServer();
     void Disconnect();

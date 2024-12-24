@@ -13,7 +13,12 @@ std::mutex connection_info_mtx;
 
 Server::Server(const std::string& host, const std::string& port)
 {
-    serverSocket = new ServerSocket(host, port);
+    serverSocket = new WindowsServerSocket(host, port);
+    windowsServerSocket = dynamic_cast<WindowsServerSocket*>(serverSocket);
+    if (!windowsServerSocket)
+    {
+        std::cerr << "Failed to cast serverSocket to WindowsServerSocket" << std::endl;
+    }
 }
 
 Server::~Server()
@@ -23,7 +28,7 @@ Server::~Server()
 
 void Server::Init()
 {
-    if(!serverSocket->IsValid())
+    if(!windowsServerSocket->IsValid())
     {
         serverSocket->InitializeSocket();
     }
@@ -34,7 +39,7 @@ void Server::Run()
     /**
      * @brief This function is used to run the server.
      */
-    if(serverSocket->IsValid())
+    if(windowsServerSocket->IsValid())
     {
         listener        = std::make_unique<std::thread>(&Server::Listener, this);
         receiver        = std::make_unique<std::thread>(&Server::Receiver, this);
@@ -80,7 +85,7 @@ void Server::Listener()
 
     while(isRunning.load())
     {
-        serverSocket->Listen();
+        windowsServerSocket->Listen();
         // auto connectInfo = serverSocket->Listen();
         // AddConnection(connectInfo);
     }
@@ -94,12 +99,12 @@ void Server::Receiver()
 
 std::string Server::GetMassage()
 {
-    std::unique_lock queue_lock(serverSocket->queue_mtx);
-    serverSocket->massageReceived_cv.wait(queue_lock,[this]() { return !serverSocket->messages.empty(); });
-    auto mess = serverSocket->messages.front();
+    std::unique_lock queue_lock(windowsServerSocket->queue_mtx);
+    windowsServerSocket->massageReceived_cv.wait(queue_lock,[this]() { return !windowsServerSocket->messages.empty(); });
+    auto mess = windowsServerSocket->messages.front();
     if(!mess.empty())
     {
-        serverSocket->messages.pop();
+        windowsServerSocket->messages.pop();
         return mess;
     }
     return "";

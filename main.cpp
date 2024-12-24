@@ -1,9 +1,9 @@
 #include <iostream>
-#include <ClientSocket.h>
+#include <WindowsClientSocket.h>
 
 #include <thread>
 
-void rec(ClientSocket& serverSocket)
+void rec(WindowsClientSocket& serverSocket)
 {
     serverSocket.Resave();
 }
@@ -12,7 +12,7 @@ int main()
 {
 
 
-    ClientSocket serverSocket;
+    WindowsClientSocket serverSocket;
     serverSocket.ConnectToServer();
 
     std::thread t1(rec, std::ref(serverSocket));

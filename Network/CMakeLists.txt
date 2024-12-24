@@ -1,8 +1,8 @@
 add_library(Network STATIC
-        Sockets/ServerSocket.cpp
-        Sockets/ServerSocket.h
-        Sockets/ClientSocket.cpp
-        Sockets/ClientSocket.h
+        Sockets/WindowsServerSocket.cpp
+        Sockets/WindowsServerSocket.h
+        Sockets/WindowsClientSocket.cpp
+        Sockets/WindowsClientSocket.h
         Core/Server.cpp
         Core/Server.h
         Core/Status.cpp
@@ -10,7 +10,11 @@ add_library(Network STATIC
         Core/ConnectionInfo.h
         Core/ConnectionInfo.cpp
         Core/ServerConfig.cpp
-        Core/ServerConfig.h)
+        Core/ServerConfig.h
+        Sockets/ISocket.cpp
+        Sockets/ISocket.h
+        Sockets/LinuxServeSocket.cpp
+        Sockets/LinuxServeSocket.h)
 
 target_include_directories(Network PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/Sockets
