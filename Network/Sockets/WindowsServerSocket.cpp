@@ -222,27 +222,27 @@ void WindowsServerSocket::RunSocketIO()
                 }
             }
 
-            if(outgoingMessages.empty())
+            if (outgoingMessages.empty())
             {
                 ++socket_info;
                 continue;
             }
 
-            if(FD_ISSET(socket_info->socket, &writesFds))
+            std::lock_guard lock_message_queue(outgoing_mtx);
+            while (!outgoingMessages.empty())
             {
-                outgoing_mtx.lock();
-                Massage message = outgoingMessages.front();
-                outgoing_mtx.unlock();
-                int bytes_send = send(socket_info->socket, message.message.c_str(), message.message.size(),0);
-                if(bytes_send == SOCKET_ERROR)
+                if (FD_ISSET(socket_info->socket, &writesFds))
                 {
-                    std::cerr << "Send failed: " << WSAGetLastError() << std::endl;
-                    std::lock_guard lock_error(errors_mtx);
-                    errors.emplace_back(message);
-                }
-                else
-                {
-                    std::lock_guard lock_message_queue(outgoing_mtx);
+                    Message message = outgoingMessages.front();
+                    int bytes_send = send(message.socketInfo.socket, message.message.c_str(),
+                        message.message.size(),0);
+                    if (bytes_send == SOCKET_ERROR)
+                    {
+                        std::cerr << "Send failed: " << WSAGetLastError() << std::endl;
+                        std::lock_guard lock_buff(client_init_mtx);
+                        socket_info = clientSockets.erase(socket_info);
+                        continue;
+                    }
                     outgoingMessages.pop();
                 }
             }
@@ -257,7 +257,7 @@ bool WindowsServerSocket::IsValid()
     return listenSocket != INVALID_SOCKET;
 }
 
-Massage WindowsServerSocket::GetMassageFromQueue()
+Message WindowsServerSocket::GetMassageFromQueue()
 {
     /*
      * This method blocks the thread when it is called until there is at least one message in the queue
@@ -274,20 +274,20 @@ Massage WindowsServerSocket::GetMassageFromQueue()
 
         return !incomingMessages.empty();
     });
-    Massage massage = incomingMessages.front();
+    Message massage = incomingMessages.front();
     incomingMessages.pop();
     return massage;
 }
 
-Massage WindowsServerSocket::GetErrorFromQueue()
+Message WindowsServerSocket::GetErrorFromQueue()
 {
     std::lock_guard lock(errors_mtx);
     if (errors.empty()) return {};
-    Massage error = errors.front();
+    Message error = errors.front();
     return error;
 }
 
-void WindowsServerSocket::AddMassageToSendQueue(const Massage& message)
+void WindowsServerSocket::AddMassageToSendQueue(const Message& message)
 {
     std::lock_guard lock(outgoing_mtx);
     outgoingMessages.push(message);

@@ -29,7 +29,7 @@ struct SocketInfo
     std::string host;
 };
 
-struct Massage
+struct Message
 {
     std::string message;
     SocketInfo socketInfo;
@@ -53,14 +53,14 @@ public:
 
     bool IsValid();
 
-    Massage GetMassageFromQueue();
-    Massage GetErrorFromQueue();
-    void AddMassageToSendQueue(const Massage& message);
+    Message GetMassageFromQueue();
+    Message GetErrorFromQueue();
+    void AddMassageToSendQueue(const Message& message);
 
 protected:
-    std::queue<Massage>     incomingMessages;
-    std::queue<Massage>     outgoingMessages;
-    std::vector<Massage>    errors;
+    std::queue<Message>     incomingMessages;
+    std::queue<Message>     outgoingMessages;
+    std::vector<Message>    errors;
 
     std::vector<SocketInfo> clientSockets;
 

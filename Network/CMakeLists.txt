@@ -14,7 +14,9 @@ add_library(Network STATIC
         Sockets/ISocket.cpp
         Sockets/ISocket.h
         Sockets/LinuxServeSocket.cpp
-        Sockets/LinuxServeSocket.h)
+        Sockets/LinuxServeSocket.h
+        CLI/CLI.cpp
+        CLI/CLI.h)
 
 target_include_directories(Network PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/Sockets
