@@ -92,10 +92,13 @@ void WindowsClientSocket::Resave()
 
 void WindowsClientSocket::Cleanup() const
 {
+
+    std::cout << "Cleanup" << std::endl;
     if(result != nullptr)
     {
         freeaddrinfo(result);
     }
+    shutdown(ConnectSocket, SD_BOTH);
     closesocket(ConnectSocket);
     WSACleanup();
 }

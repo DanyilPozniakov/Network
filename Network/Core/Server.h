@@ -22,36 +22,21 @@ public:
     explicit  Server(const std::string& host, const std::string& port);
     //explicit  Server(const ServerConfig& config); //TODO: realize ServerConfig
     ~Server();
-
-    void Init();
     void Run();
     void StopServer();
     void Restart();
 
-    void AddConnection(const ConnectionInfo& connection);
-
-
-    void ReadAndShowMessages();
 
 protected:
+    std::atomic<bool> isRunning = false;
+
+private:
     ISocket* serverSocket;
     WindowsServerSocket* windowsServerSocket;
 
-    std::unique_ptr<std::thread> listener;
-    std::unique_ptr<std::thread> receiver;
-    std::unique_ptr<std::thread> messageReader;
-
-private:
-    std::atomic<bool> isRunning = false;
-    std::vector<ConnectionInfo> connections;
 
     std::string host;
     std::string port;
-
-    void Listener();
-    void Receiver();
-    std::string GetMassage();
-
 
 };
 
