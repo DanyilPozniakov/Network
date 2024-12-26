@@ -10,33 +10,22 @@ void rec(WindowsClientSocket& serverSocket)
 
 int main()
 {
-    int* a = new int(1);
+
+
+    WindowsClientSocket serverSocket;
+    serverSocket.ConnectToServer();
+
+    std::thread t1(rec, std::ref(serverSocket));
+
+    while(true)
     {
-        delete a;
-    }
-    int& b = *a;
-
-    if(b == nullptr)
-    {
-        std::cout << "nullptr" << std::endl;
+        std::string request;
+        std::getline(std::cin, request);
+        serverSocket.Send(request);
     }
 
-    std::cout << b << std::endl;
 
-    // WindowsClientSocket serverSocket;
-    // serverSocket.ConnectToServer();
-    //
-    // std::thread t1(rec, std::ref(serverSocket));
-    //
-    // while(true)
-    // {
-    //     std::string request;
-    //     std::getline(std::cin, request);
-    //     serverSocket.Send(request);
-    // }
-    //
-    //
-    // t1.join();
-    // return 0;
+    t1.join();
+    return 0;
 }
 

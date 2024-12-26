@@ -33,10 +33,10 @@ void Server::Run()
     {
         windowsServerSocket->Run();
     }
-    //isRunning.store(true);
+    isRunning.store(true);
 
 
-    while (true)
+    while (isRunning.load())
     {
         Message message = windowsServerSocket->GetMassageFromQueue();
         if (message.message == "server stop")
@@ -44,6 +44,7 @@ void Server::Run()
             Message stopMessage { "server stopped! ", message.socketInfo };
             windowsServerSocket->AddMassageToSendQueue(stopMessage);
             windowsServerSocket->Stop();
+            isRunning.store(false);
             continue;
         }
         std::cout << "From: " << message.socketInfo.port << ",  Massage: " << message.message << std::endl;

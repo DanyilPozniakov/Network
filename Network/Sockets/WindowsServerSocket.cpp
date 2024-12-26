@@ -79,7 +79,16 @@ void WindowsServerSocket::InitializeSocket()
     //Bind the socket in the system
     if (bind(listenSocket, result->ai_addr, result->ai_addrlen) == SOCKET_ERROR)
     {
-        std::cout << "bind failed: " << WSAGetLastError() << std::endl;
+        auto error = WSAGetLastError();
+        if(error == WSAEADDRINUSE)
+        {
+            std::cerr << "Address already in use: " << error << std::endl;
+            closesocket(listenSocket);
+            Stop();
+            return;
+        }
+
+        std::cout << ": " << WSAGetLastError() << std::endl;
         closesocket(listenSocket);
         freeaddrinfo(result);
         return;

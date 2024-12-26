@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 add_subdirectory(Network)
 add_subdirectory(ServerApp)
+add_subdirectory(Network/CLI)
 
 add_executable(Networking main.cpp)
 

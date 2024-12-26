@@ -12,7 +12,7 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-#define DEFAULT_PORT "0808"
+#define DEFAULT_PORT "2525"
 #define DEFAULT_HOST "localhost"
 
 class WindowsClientSocket {

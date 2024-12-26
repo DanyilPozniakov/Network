@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 #endif
 
 
-    Server server("localhost", "0808");
+    Server server("localhost", "2525");
     server.Run();
 
 
