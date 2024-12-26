@@ -24,7 +24,7 @@ public:
     ConnectionInfo connectInfo;
 
     explicit  Server(const std::string& host, const std::string& port);
-    //explicit  Server(const ServerConfig& config); //TODO: realize ServerConfig
+    //explicit  Server(const ServerConfig& config);
     ~Server();
     void Run();
     void StopServer();
@@ -45,7 +45,5 @@ private:
     Message* lastMessage;
 
 };
-
-
 
 #endif //CONNECTION_H

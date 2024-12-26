@@ -160,6 +160,8 @@ void WindowsServerSocket::Listen()
 
 void WindowsServerSocket::RunSocketIO()
 {
+    //TODO: restructuring the method, unite the RunSocketIO and Listen methods into one MainLoop method
+
     while (isRunning.load())
     {
         while (clientSockets.empty())

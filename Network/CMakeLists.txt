@@ -5,12 +5,8 @@ add_library(Network STATIC
         Sockets/WindowsClientSocket.h
         Core/Server.cpp
         Core/Server.h
-        Core/Status.cpp
-        Core/Status.h
         Core/ConnectionInfo.h
         Core/ConnectionInfo.cpp
-        Core/ServerConfig.cpp
-        Core/ServerConfig.h
         Sockets/ISocket.cpp
         Sockets/ISocket.h
         Sockets/LinuxServeSocket.cpp

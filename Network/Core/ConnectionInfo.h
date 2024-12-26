@@ -34,6 +34,8 @@ public:
 
 
 protected:
+    std::string token;
+
     void SetId(int id);
     void AddRequest();
     void SetDuration();
