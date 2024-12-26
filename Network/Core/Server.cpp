@@ -4,7 +4,7 @@
 
 #include "Server.h"
 #include <mutex>
-
+#include <CLI.h>
 
 //temp
 #include <iostream>
@@ -19,6 +19,23 @@ Server::Server(const std::string& host, const std::string& port)
     {
         std::cerr << "Failed to cast serverSocket to WindowsServerSocket" << std::endl;
     }
+
+
+    // Set up CLI commands
+    cli.AddCommand("restart",   [this] { Restart(); });
+    cli.AddCommand("stop",      [this] { StopServer(); });
+
+    cli.AddCommand("command 1", [this]
+    {
+        Message message{"command 1 execute!!!!", lastMessage->socketInfo };
+        windowsServerSocket->AddMassageToSendQueue(message);
+    });
+
+    cli.AddCommand("command 2", [this]
+    {
+        Message message{"command 2 execute!!!!", lastMessage->socketInfo };
+        windowsServerSocket->AddMassageToSendQueue(message);
+    });
 }
 
 Server::~Server()
@@ -39,22 +56,24 @@ void Server::Run()
     while (isRunning.load())
     {
         Message message = windowsServerSocket->GetMassageFromQueue();
-        if (message.message == "server stop")
+        lastMessage = &message;
+        if(cli.IsSliCommand(message.message))
         {
-            Message stopMessage { "server stopped! ", message.socketInfo };
-            windowsServerSocket->AddMassageToSendQueue(stopMessage);
-            windowsServerSocket->Stop();
-            isRunning.store(false);
             continue;
         }
-        std::cout << "From: " << message.socketInfo.port << ",  Massage: " << message.message << std::endl;
-        Message messageout { "server received: " + message.message, message.socketInfo };
-        windowsServerSocket->AddMassageToSendQueue(messageout);
+        else
+        {
+            std::cout << "From: " << message.socketInfo.port << ",  Massage: " << message.message << std::endl;
+            Message messageout{"server received: " + message.message, message.socketInfo};
+            windowsServerSocket->AddMassageToSendQueue(messageout);
+        }
     }
 }
 
 void Server::StopServer()
 {
+    isRunning.store(false);
+    windowsServerSocket->Stop();
 }
 
 void Server::Restart()

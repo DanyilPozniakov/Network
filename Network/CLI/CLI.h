@@ -11,11 +11,13 @@ public:
     CLI() = default;
     ~CLI() = default;
 
+    bool IsSliCommand(const std::string& command);
 
-    void execute(std::string command);
-    void add_command(const std::string& command, std::function<void()> func);
+    void AddCommand(const std::string& command, std::function<void()> func);
     std::map<std::string, std::function<void()>> commands;
 
+protected:
+    static void execute(const std::function<void()>& func);
 
 
 };

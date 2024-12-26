@@ -10,7 +10,11 @@
 #include <thread>
 #include <atomic>
 #include <memory>
-#include <queue>
+#include <CLI.h>
+
+#ifdef _DEBUG
+
+#endif
 
 //TODO: CLI!!!
 
@@ -33,10 +37,12 @@ protected:
 private:
     ISocket* serverSocket;
     WindowsServerSocket* windowsServerSocket;
-
+    CLI cli;
 
     std::string host;
     std::string port;
+
+    Message* lastMessage;
 
 };
 

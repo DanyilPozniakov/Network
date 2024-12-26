@@ -4,16 +4,39 @@
 
 #include "CLI.h"
 #include <iostream>
+#include <utility>
 
 
-void CLI::execute(std::string command)
+bool CLI::IsSliCommand(const std::string& command)
 {
-    if (commands.find(command) != commands.end())
+    if(auto comm = commands.find(command); comm != commands.end())
     {
-        commands[command]();
+        execute(comm->second);
+        return true;
     }
     else
     {
-        std::cout << "Command not found" << std::endl;
+        return false;
+    }
+}
+
+void CLI::AddCommand(const std::string& command, std::function<void()> func)
+{
+    commands[command] = std::move(func);
+}
+
+void CLI::execute(const std::function<void()>& func)
+{
+    try
+    {
+        func();
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Error in CLI->execute():" << e.what() << std::endl;
+    }
+    catch (...)
+    {
+        std::cerr << "Unknown error in CLI->execute()" << std::endl;
     }
 }
