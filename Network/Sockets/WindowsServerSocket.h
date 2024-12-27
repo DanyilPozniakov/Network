@@ -46,7 +46,6 @@ public:
 
     void Run();
     void Stop();
-    void Listen();
     void RunSocketIO() override;
     void InitializeSocket() override;
     void ClosesSocket() override;
@@ -68,12 +67,9 @@ protected:
     std::condition_variable massageReceived_cv;
     std::condition_variable outgoingMessage_cv;
     std::condition_variable error_cv;
-    std::condition_variable client_socket_init_cv;
     std::mutex incoming_mtx;
     std::mutex outgoing_mtx;
     std::mutex errors_mtx;
-    std::mutex buff_mtx;
-    std::mutex client_init_mtx;
 
 private:
     std::string port;

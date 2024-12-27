@@ -52,9 +52,7 @@ WindowsServerSocket::~WindowsServerSocket()
 void WindowsServerSocket::Run()
 {
     isRunning.store(true);
-    std::thread Listen(&WindowsServerSocket::Listen, this);
     std::thread SocketIO(&WindowsServerSocket::RunSocketIO, this);
-    Listen.detach();
     SocketIO.detach();
     std::cout << "Threads finished" << std::endl;
 }
@@ -80,7 +78,7 @@ void WindowsServerSocket::InitializeSocket()
     if (bind(listenSocket, result->ai_addr, result->ai_addrlen) == SOCKET_ERROR)
     {
         auto error = WSAGetLastError();
-        if(error == WSAEADDRINUSE)
+        if (error == WSAEADDRINUSE)
         {
             std::cerr << "Address already in use: " << error << std::endl;
             closesocket(listenSocket);
@@ -117,16 +115,19 @@ void WindowsServerSocket::ClosesSocket()
     std::cout << "WindowsServerSocket closed!" << std::endl;
 }
 
-void WindowsServerSocket::Listen()
+
+void WindowsServerSocket::RunSocketIO()
 {
+    //TODO: restructuring the method, unite the RunSocketIO and Listen methods into one MainLoop method
+
     while (isRunning.load())
     {
         FD_SET listenFds;
         FD_ZERO(&listenFds);
         FD_SET(listenSocket, &listenFds);
-        timeval timeout{5, 0};
+        timeval timeout{0, 100};
         int result = select(0, &listenFds, nullptr, nullptr, &timeout);
-        YELLOW_OUTPUT("Listening for incoming connections...")
+        //YELLOW_OUTPUT("Listening for incoming connections...")
         if (result == SOCKET_ERROR)
         {
             std::cerr << "Listen socket failed: " << WSAGetLastError() << std::endl;
@@ -142,35 +143,25 @@ void WindowsServerSocket::Listen()
             if (ClientSocket == INVALID_SOCKET)
             {
                 std::cerr << "accept failed: " << WSAGetLastError() << std::endl;
+                continue;
                 //TODO: Add error handling, signal to the main thread
             }
-
             //Creating and save a connection info
             char host[NI_MAXHOST];
             int port = ntohs(clientInfo.sin_port);
             inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
-            {
-                std::lock_guard lock(client_init_mtx);
-                clientSockets.push_back({ClientSocket, serial++, port, host});
-                client_socket_init_cv.notify_all();
-            }
+
+            clientSockets.push_back({ClientSocket, serial++, port, host});
+            GREEN_OUTPUT("Client connected: " << host << " on port: " << port)
         }
-    }
-}
 
-void WindowsServerSocket::RunSocketIO()
-{
-    //TODO: restructuring the method, unite the RunSocketIO and Listen methods into one MainLoop method
-
-    while (isRunning.load())
-    {
-        while (clientSockets.empty())
+        if (clientSockets.empty())
         {
-            std::cerr << "No clients connected, waiting for the client...." << std::endl;
-            std::unique_lock lock(client_init_mtx);
-            client_socket_init_cv.wait(lock, [this]() { return !clientSockets.empty(); });
-            GREEN_OUTPUT("Client connected! RunSocketIO started")
+            //std::cerr << "No clients connected, waiting for the client...." << std::endl;
+            continue;
         }
+
+        //IO Logic
         FD_SET readFds, writesFds;
         FD_ZERO(&readFds);
         FD_ZERO(&writesFds);
@@ -181,8 +172,7 @@ void WindowsServerSocket::RunSocketIO()
             FD_SET(socket.socket, &writesFds);
         }
 
-        timeval timeout{0, 500};
-        int valid_sockets = select(0, &readFds, &writesFds, nullptr, &timeout);
+        int valid_sockets = select(0, &readFds, &writesFds, nullptr, nullptr);
         if (valid_sockets == SOCKET_ERROR) std::cerr << "Select failed: " << WSAGetLastError() << std::endl;
 
         for (auto socket_info = clientSockets.begin(); socket_info != clientSockets.end();)
@@ -192,7 +182,6 @@ void WindowsServerSocket::RunSocketIO()
                 int bytesrecv = recv(socket_info->socket, recvbuf.data(), recvbuf.size(), 0);
                 if (bytesrecv > 0)
                 {
-                    std::lock_guard lock_buff(buff_mtx);
                     recvbuf[bytesrecv] = '\0';
                     {
                         std::lock_guard lock_message_queue(incoming_mtx);
@@ -212,7 +201,6 @@ void WindowsServerSocket::RunSocketIO()
                 else if (bytesrecv == 0)
                 {
                     std::cerr << "Connection closed" << std::endl;
-                    std::lock_guard lock_buff(client_init_mtx);
                     socket_info = clientSockets.erase(socket_info);
                     continue;
                 }
@@ -220,14 +208,12 @@ void WindowsServerSocket::RunSocketIO()
                 else if (bytesrecv == SOCKET_ERROR)
                 {
                     std::cerr << "SOCKET_ERROR Recv failed: " << WSAGetLastError() << std::endl;
-                    std::lock_guard lock_buff(client_init_mtx);
                     socket_info = clientSockets.erase(socket_info);
                     continue;
                 }
                 else
                 {
                     std::cerr << "Recv failed: " << WSAGetLastError() << std::endl;
-                    std::lock_guard lock_buff(client_init_mtx);
                     socket_info = clientSockets.erase(socket_info);
                     continue;
                 }
@@ -246,15 +232,19 @@ void WindowsServerSocket::RunSocketIO()
                 {
                     Message message = outgoingMessages.front();
                     int bytes_send = send(message.socketInfo.socket, message.message.c_str(),
-                        message.message.size(),0);
+                                          message.message.size(), 0);
                     if (bytes_send == SOCKET_ERROR)
                     {
                         std::cerr << "Send failed: " << WSAGetLastError() << std::endl;
-                        std::lock_guard lock_buff(client_init_mtx);
                         socket_info = clientSockets.erase(socket_info);
                         continue;
                     }
                     outgoingMessages.pop();
+                }
+                else
+                {
+                    //TODO: Add error handling when the socket is not ready to write!
+                    std::cerr << "Socket is not ready to write" << std::endl;
                 }
             }
             ++socket_info;
