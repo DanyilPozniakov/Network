@@ -7,7 +7,7 @@
 #include <utility>
 
 
-bool CLI::IsSliCommand(const std::string& command)
+bool CLI::ExecuteIfCommand(const std::string& command)
 {
     if(auto comm = commands.find(command); comm != commands.end())
     {

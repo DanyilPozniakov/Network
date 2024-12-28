@@ -8,37 +8,17 @@
 
 //temp
 #include <iostream>
-#include <unordered_map>
 
-
-std::mutex connection_info_mtx;
 
 Server::Server(const std::string& host, const std::string& port)
 {
-
     serverSocket = new WindowsServerSocket(host, port);
     windowsServerSocket = dynamic_cast<WindowsServerSocket*>(serverSocket);
+
     if (!windowsServerSocket)
     {
         std::cerr << "Failed to cast serverSocket to WindowsServerSocket" << std::endl;
     }
-
-
-    // Set up CLI commands
-    cli.AddCommand("restart",   [this] { Restart(); });
-    cli.AddCommand("stop",      [this] { StopServer(); });
-
-    cli.AddCommand("command 1", [this]
-    {
-        Message message{"command 1 execute!!!!", lastMessage->socketInfo };
-        windowsServerSocket->AddMassageToSendQueue(message);
-    });
-
-    cli.AddCommand("command 2", [this]
-    {
-        Message message{"command 2 execute!!!!", lastMessage->socketInfo };
-        windowsServerSocket->AddMassageToSendQueue(message);
-    });
 }
 
 Server::~Server()
@@ -60,7 +40,7 @@ void Server::Run()
     {
         Message message = windowsServerSocket->GetMassageFromQueue();
         lastMessage = &message;
-        if(cli.IsSliCommand(message.message))
+        if(cli.ExecuteIfCommand(message.message))
         {
             continue;
         }
@@ -86,4 +66,23 @@ void Server::Restart()
      */
     StopServer();
     Run();
+}
+
+void Server::SetSLICommands()
+{
+    // Set up CLI commands
+    cli.AddCommand("restart",   [this] { Restart(); });
+    cli.AddCommand("stop",      [this] { StopServer(); });
+
+    cli.AddCommand("command 1", [this]
+    {
+        Message message{"command 1 execute!!!!", lastMessage->socketInfo };
+        windowsServerSocket->AddMassageToSendQueue(message);
+    });
+
+    cli.AddCommand("command 2", [this]
+    {
+        Message message{"command 2 execute!!!!", lastMessage->socketInfo };
+        windowsServerSocket->AddMassageToSendQueue(message);
+    });
 }

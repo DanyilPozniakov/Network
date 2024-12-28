@@ -19,6 +19,13 @@ public:
     virtual void InitializeSocket() = 0;
     virtual void ClosesSocket() = 0;
 
+protected:
+    std::string port;
+    std::string host;
+
+    addrinfo*   result = nullptr;
+    SOCKET      listenSocket = INVALID_SOCKET;
+    WSADATA     wsaData{};
 
 };
 

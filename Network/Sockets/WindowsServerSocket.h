@@ -37,8 +37,6 @@ struct Message
 
 class WindowsServerSocket : public ISocket
 {
-    friend class Server;
-
 public:
     explicit WindowsServerSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
     ~WindowsServerSocket() override;
@@ -57,11 +55,11 @@ public:
     void AddMassageToSendQueue(const Message& message);
 
 protected:
+    std::vector<SocketInfo> clientSockets;
+
     std::queue<Message>     incomingMessages;
     std::queue<Message>     outgoingMessages;
     std::vector<Message>    errors;
-
-    std::vector<SocketInfo> clientSockets;
 
     std::atomic<bool> isRunning = false;
     std::condition_variable massageReceived_cv;
@@ -72,13 +70,6 @@ protected:
     std::mutex errors_mtx;
 
 private:
-    std::string port;
-    std::string host;
-
-    addrinfo*   result = nullptr;
-    SOCKET      listenSocket = INVALID_SOCKET;
-    WSADATA     wsaData{};
-
     std::array<char, 1024> recvbuf{};
     int serial = 0;
 };

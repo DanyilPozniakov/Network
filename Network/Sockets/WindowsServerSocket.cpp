@@ -17,8 +17,11 @@ std::cout << "\033[1;32m" << message << "\033[0m" << std::endl;
 std::cout << "\033[4;31m" << message << "\033[0m" << std::endl;
 
 
-WindowsServerSocket::WindowsServerSocket(const std::string& host, const std::string& port) : host(host)
+WindowsServerSocket::WindowsServerSocket(const std::string& host, const std::string& port)
 {
+    ISocket::host = host;
+    ISocket::port = port;
+
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
     {
         std::cout << "WSAStartup failed: " << WSAGetLastError() << std::endl;
@@ -184,10 +187,12 @@ void WindowsServerSocket::RunSocketIO()
                 {
                     recvbuf[bytesrecv] = '\0';
                     {
-                        std::lock_guard lock_message_queue(incoming_mtx);
                         if (!clientSockets.empty())
                         {
-                            incomingMessages.push({std::string(recvbuf.data()), *socket_info});
+                            {
+                                std::lock_guard lock_message_queue(incoming_mtx);
+                                incomingMessages.push({std::string(recvbuf.data()), *socket_info});
+                            }
                             massageReceived_cv.notify_all();
                         }
                         else

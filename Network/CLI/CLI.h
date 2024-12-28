@@ -11,8 +11,7 @@ public:
     CLI() = default;
     ~CLI() = default;
 
-    bool IsSliCommand(const std::string& command);
-
+    bool ExecuteIfCommand(const std::string& command);
     void AddCommand(const std::string& command, std::function<void()> func);
     std::map<std::string, std::function<void()>> commands;
 

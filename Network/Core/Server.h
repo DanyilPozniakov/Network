@@ -34,6 +34,7 @@ public:
 protected:
     std::atomic<bool> isRunning = false;
 
+    void SetSLICommands();
 private:
     ISocket* serverSocket;
     WindowsServerSocket* windowsServerSocket;
