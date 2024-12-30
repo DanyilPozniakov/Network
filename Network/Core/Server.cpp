@@ -4,6 +4,7 @@
 
 #include "Server.h"
 #include <mutex>
+#include <regex>
 #include <CLI.h>
 
 //temp
@@ -40,15 +41,10 @@ void Server::Run()
     {
         Message message = windowsServerSocket->GetMassageFromQueue();
         lastMessage = &message;
-        if(cli.ExecuteIfCommand(message.message))
+        if(!cli.ExecuteIfCommand(message.message))
         {
-            continue;
-        }
-        else
-        {
-            std::cout << "From: " << message.socketInfo.port << ",  Massage: " << message.message << std::endl;
-            Message messageout{"server received: " + message.message, message.socketInfo};
-            windowsServerSocket->AddMassageToSendQueue(messageout);
+            windowsServerSocket->AddMessageToOutgoingQueue({"Unknown command! Enter 'help' to see all " \
+                                                        "commands", message.socketInfo});
         }
     }
 }
@@ -68,21 +64,20 @@ void Server::Restart()
     Run();
 }
 
+void Server::SendToAll(const std::string& message)
+{
+}
+
 void Server::SetSLICommands()
 {
     // Set up CLI commands
-    cli.AddCommand("restart",   [this] { Restart(); });
     cli.AddCommand("stop",      [this] { StopServer(); });
 
-    cli.AddCommand("command 1", [this]
+    cli.AddCommand(R"(login (\w+) (\w+))", [this](std::smatch match)
     {
-        Message message{"command 1 execute!!!!", lastMessage->socketInfo };
-        windowsServerSocket->AddMassageToSendQueue(message);
-    });
-
-    cli.AddCommand("command 2", [this]
-    {
-        Message message{"command 2 execute!!!!", lastMessage->socketInfo };
-        windowsServerSocket->AddMassageToSendQueue(message);
+        Session session;
+        session.name = match[1];
+        session.password = match[2];
+        //session.role = Role::User;
     });
 }

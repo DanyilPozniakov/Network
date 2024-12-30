@@ -5,6 +5,18 @@
 #ifndef AUTHORIZATION_H
 #define AUTHORIZATION_H
 
+#ifdef _DEBUG
+
+
+#endif
+
+
+enum class Role
+{
+    Admin,
+    User
+};
+
 
 class Authorization {
 

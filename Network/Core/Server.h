@@ -18,6 +18,15 @@
 
 //TODO: CLI!!!
 
+struct Session
+{
+    std::string name;
+    std::string password;
+   // Role role;
+};
+
+
+
 class Server
 {
 public:
@@ -29,7 +38,7 @@ public:
     void Run();
     void StopServer();
     void Restart();
-
+    void SendToAll(const std::string& message);
 
 protected:
     std::atomic<bool> isRunning = false;

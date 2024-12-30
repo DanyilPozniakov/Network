@@ -7,36 +7,56 @@
 #include <utility>
 
 
+Command::Command(void (*func)()) : _func(func)
+{
+    _type = FuncType::NoArgs;
+}
+
+Command::Command(void (*func)(std::string)) : _func(func)
+{
+    _type = FuncType::StringArg;
+}
+
+Command::Command(void (*func)(std::smatch)): _func(func)
+{
+    _type = FuncType::SMatchArg;
+}
+
+void Command::Execute(const std::string& args) const
+{
+    switch (_type)
+    {
+    case FuncType::NoArgs:
+        {
+            void(*func)() = reinterpret_cast<void (*)()>(_func);
+            func();
+        }
+    case FuncType::StringArg:
+        {
+            void(*func)(std::string) = reinterpret_cast<void (*)(std::string)>(_func);
+            func(args);
+        }
+
+    case FuncType::SMatchArg:
+        {
+
+        }
+    default: ;
+    }
+}
+
+
+/* #######  CLI ######## */
 bool CLI::ExecuteIfCommand(const std::string& command)
 {
-    if(auto comm = commands.find(command); comm != commands.end())
+    if (auto comm = commands.find(command); comm != commands.end())
     {
-        execute(comm->second);
+        comm->second.Execute(command);
         return true;
     }
-    else
-    {
-        return false;
-    }
+    return false;
 }
 
-void CLI::AddCommand(const std::string& command, std::function<void()> func)
-{
-    commands[command] = std::move(func);
-}
 
-void CLI::execute(const std::function<void()>& func)
-{
-    try
-    {
-        func();
-    }
-    catch (std::exception& e)
-    {
-        std::cerr << "Error in CLI->execute():" << e.what() << std::endl;
-    }
-    catch (...)
-    {
-        std::cerr << "Unknown error in CLI->execute()" << std::endl;
-    }
-}
+/* #######  CLI ######## */
+

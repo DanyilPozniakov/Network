@@ -21,7 +21,7 @@
 #define DEFAULT_HOST "localhost"
 
 
-struct SocketInfo
+struct ClientInfo
 {
     SOCKET socket{};
     int id;
@@ -32,7 +32,7 @@ struct SocketInfo
 struct Message
 {
     std::string message;
-    SocketInfo socketInfo;
+    ClientInfo socketInfo;
 };
 
 class WindowsServerSocket : public ISocket
@@ -52,10 +52,10 @@ public:
 
     Message GetMassageFromQueue();
     Message GetErrorFromQueue();
-    void AddMassageToSendQueue(const Message& message);
+    void AddMessageToOutgoingQueue(const Message& message);
 
 protected:
-    std::vector<SocketInfo> clientSockets;
+    std::vector<ClientInfo> clientSockets;
 
     std::queue<Message>     incomingMessages;
     std::queue<Message>     outgoingMessages;

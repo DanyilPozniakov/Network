@@ -153,7 +153,6 @@ void WindowsServerSocket::RunSocketIO()
             char host[NI_MAXHOST];
             int port = ntohs(clientInfo.sin_port);
             inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
-
             clientSockets.push_back({ClientSocket, serial++, port, host});
             GREEN_OUTPUT("Client connected: " << host << " on port: " << port)
         }
@@ -293,7 +292,7 @@ Message WindowsServerSocket::GetErrorFromQueue()
     return error;
 }
 
-void WindowsServerSocket::AddMassageToSendQueue(const Message& message)
+void WindowsServerSocket::AddMessageToOutgoingQueue(const Message& message)
 {
     std::lock_guard lock(outgoing_mtx);
     outgoingMessages.push(message);

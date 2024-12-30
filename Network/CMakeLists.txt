@@ -13,8 +13,8 @@ add_library(Network STATIC
         Sockets/LinuxServeSocket.h
         CLI/CLI.cpp
         CLI/CLI.h
-        Core/Authorization.cpp
-        Core/Authorization.h
+        Core/Authorization/Authorization.cpp
+        Core/Authorization/Authorization.h
 )
 
 target_include_directories(Network PUBLIC
