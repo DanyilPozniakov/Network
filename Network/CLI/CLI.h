@@ -37,7 +37,6 @@ class CommandNoArgs : public CommandBase<CommandNoArgs>
 {
 public:
     explicit CommandNoArgs(std::function<void()> func);
-    ~CommandNoArgs();
     void ExecuteImpl(const std::string& args);
 
 
@@ -50,7 +49,6 @@ class CommandStrArgs : public CommandBase<CommandStrArgs>
 {
 public:
     CommandStrArgs(std::function<void(const std::string&)> func);
-    ~CommandStrArgs();
 
     void ExecuteImpl(std::string args);
 
@@ -71,7 +69,6 @@ public:
     void AddCommand(const std::string& command, std::function<void()> func);
     void AddCommand(const std::string& command, std::function<void(const std::string&)> func);
     ///void AddCommand(std::string command, ..... );
-    ///
     bool ExecuteIfCommand(const std::string& incomeMessage);
     std::map<std::string, std::unique_ptr<IExecutable>> commands;
 };

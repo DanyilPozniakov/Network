@@ -20,6 +20,8 @@ Server::Server(const std::string& host, const std::string& port)
     {
         std::cerr << "Failed to cast serverSocket to WindowsServerSocket" << std::endl;
     }
+
+    SetSLICommands();
 }
 
 Server::~Server()
@@ -75,24 +77,14 @@ void Server::SetSLICommands()
 
 
     // Set up CLI commands
-    cli.AddCommand("command base", [this](std::string args)
+    cli.AddCommand("command1", [this]()
     {
         std::cout << "Command base executed" << std::endl;
     });
 
-    cli.AddCommand("login", [this](std::string args)
+    cli.AddCommand("login", [this](const std::string& args)
     {
-
-        std::regex reg("login -u ([a-zA-Z0-9]+) -p ([a-zA-Z0-9]+)"); //TODO: Create a regex object
-        std::smatch match;
-        if (std::regex_search(args, match, reg))
-        {
-            std::cout << "Username: " << match[1] << std::endl;
-            std::cout << "Password: " << match[2] << std::endl;
-        }
-        else
-        {
-            std::cerr << "Invalid command format" << std::endl;
-        }
+        std::cout << "Login command executed\n";
+        std::cout << args << std::endl;
     });
 }
