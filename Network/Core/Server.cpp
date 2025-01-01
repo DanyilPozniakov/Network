@@ -75,12 +75,24 @@ void Server::SetSLICommands()
 
 
     // Set up CLI commands
-    cli.AddCommand("command -args ", [this](std::string args)
+    cli.AddCommand("command base", [this](std::string args)
     {
-        std::cout << "Commands: " << std::endl;
-        for (const auto& command : cli.commands)
+        std::cout << "Command base executed" << std::endl;
+    });
+
+    cli.AddCommand("login", [this](std::string args)
+    {
+
+        std::regex reg("login -u ([a-zA-Z0-9]+) -p ([a-zA-Z0-9]+)"); //TODO: Create a regex object
+        std::smatch match;
+        if (std::regex_search(args, match, reg))
         {
-            std::cout << command.first << std::endl;
+            std::cout << "Username: " << match[1] << std::endl;
+            std::cout << "Password: " << match[2] << std::endl;
+        }
+        else
+        {
+            std::cerr << "Invalid command format" << std::endl;
         }
     });
 }

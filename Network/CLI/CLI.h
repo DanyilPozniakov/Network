@@ -72,7 +72,7 @@ public:
     void AddCommand(const std::string& command, std::function<void(const std::string&)> func);
     ///void AddCommand(std::string command, ..... );
     ///
-    bool ExecuteIfCommand(const std::string& command);
+    bool ExecuteIfCommand(const std::string& incomeMessage);
     std::map<std::string, std::unique_ptr<IExecutable>> commands;
 };
 

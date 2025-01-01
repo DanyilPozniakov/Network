@@ -5,6 +5,8 @@
 #include "CLI.h"
 #include <iostream>
 #include <utility>
+#include <sstream>
+#include <string>
 
 // ...................................COMMANDS.....................................
 
@@ -74,11 +76,20 @@ void CLI::AddCommand(const std::string& command, std::function<void(const std::s
     commands[command] = std::make_unique<CommandStrArgs>(std::move(func));
 }
 
-bool CLI::ExecuteIfCommand(const std::string& command)
+bool CLI::ExecuteIfCommand(const std::string& incomeMessage)
 {
-    if( auto comm = commands.find(command); comm != commands.end())
+    std::stringstream ss(incomeMessage);
+    std::string commandName;
+    ss >> commandName;
+
+    std::string args = ss.str();
+
+    //TODO: parseArgs(std::string& args)
+
+
+    if( auto comm = commands.find(commandName); comm != commands.end())
     {
-        comm->second->Execute(command);
+        comm->second->Execute(args);
         return true;
     }
     return false;
