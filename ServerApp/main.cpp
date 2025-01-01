@@ -11,6 +11,7 @@
 int main(int argc, char* argv[])
 {
 
+
 #ifndef _DEBUG
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut == INVALID_HANDLE_VALUE)

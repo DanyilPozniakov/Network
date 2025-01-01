@@ -70,14 +70,17 @@ void Server::SendToAll(const std::string& message)
 
 void Server::SetSLICommands()
 {
-    // Set up CLI commands
-    cli.AddCommand("stop",      [this] { StopServer(); });
+    //Set up CLI flags
+    //TODO: Add flags...
 
-    cli.AddCommand(R"(login (\w+) (\w+))", [this](std::smatch match)
+
+    // Set up CLI commands
+    cli.AddCommand("command -args ", [this](std::string args)
     {
-        Session session;
-        session.name = match[1];
-        session.password = match[2];
-        //session.role = Role::User;
+        std::cout << "Commands: " << std::endl;
+        for (const auto& command : cli.commands)
+        {
+            std::cout << command.first << std::endl;
+        }
     });
 }

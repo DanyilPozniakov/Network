@@ -6,57 +6,87 @@
 #include <iostream>
 #include <utility>
 
+// ...................................COMMANDS.....................................
 
-Command::Command(void (*func)()) : _func(func)
+
+CommandNoArgs::CommandNoArgs(std::function<void()> func)
+:   CommandBase<CommandNoArgs>(),
+    func(std::move(func))
 {
-    _type = FuncType::NoArgs;
 }
 
-Command::Command(void (*func)(std::string)) : _func(func)
-{
-    _type = FuncType::StringArg;
-}
 
-Command::Command(void (*func)(std::smatch)): _func(func)
-{
-    _type = FuncType::SMatchArg;
-}
 
-void Command::Execute(const std::string& args) const
+void CommandNoArgs::ExecuteImpl(const std::string& args)
 {
-    switch (_type)
+    if(func)
     {
-    case FuncType::NoArgs:
+        try
         {
-            void(*func)() = reinterpret_cast<void (*)()>(_func);
             func();
         }
-    case FuncType::StringArg:
+        catch(const std::exception& e)
         {
-            void(*func)(std::string) = reinterpret_cast<void (*)(std::string)>(_func);
-            func(args);
+            std::cerr << e.what() << std::endl;
         }
-
-    case FuncType::SMatchArg:
-        {
-
-        }
-    default: ;
     }
 }
 
 
-/* #######  CLI ######## */
+
+CommandStrArgs::CommandStrArgs(std::function<void(const std::string&)> func)
+:   CommandBase<CommandStrArgs>(),
+    func(std::move(func))
+{
+}
+
+void CommandStrArgs::ExecuteImpl(std::string args)
+{
+    if(func)
+    {
+        try
+        {
+            func(args);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+}
+
+
+//---------------------------------------------------------------------------------------
+//-------------------------------------  CLI  -------------------------------------------
+
+CLI::CLI()
+{
+
+}
+
+void CLI::AddCommand(const std::string& command, std::function<void()> func)
+{
+    commands[command] = std::make_unique<CommandNoArgs>(std::move(func));
+}
+
+void CLI::AddCommand(const std::string& command, std::function<void(const std::string&)> func)
+{
+    commands[command] = std::make_unique<CommandStrArgs>(std::move(func));
+}
+
 bool CLI::ExecuteIfCommand(const std::string& command)
 {
-    if (auto comm = commands.find(command); comm != commands.end())
+    if( auto comm = commands.find(command); comm != commands.end())
     {
-        comm->second.Execute(command);
+        comm->second->Execute(command);
         return true;
     }
     return false;
 }
 
 
-/* #######  CLI ######## */
+
+
+
+
 
