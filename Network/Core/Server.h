@@ -7,7 +7,6 @@
 #include <ISocket.h>
 #include <ConnectionInfo.h>
 #include <WindowsServerSocket.h>
-#include <thread>
 #include <atomic>
 #include <memory>
 #include <CLI.h>
@@ -16,7 +15,6 @@
 
 #endif
 
-//TODO: CLI!!!
 
 struct Session
 {
@@ -24,8 +22,6 @@ struct Session
     std::string password;
    // Role role;
 };
-
-
 
 class Server
 {
@@ -49,10 +45,7 @@ private:
     WindowsServerSocket* windowsServerSocket;
     CLI cli;
 
-    std::string host;
-    std::string port;
-
-    Message* lastMessage;
+    Message lastMessage;
 
 };
 

@@ -73,7 +73,7 @@ void WindowsClientSocket::Resave()
         {
             recvbuf[bytesReceived] = '\0';
             std::string message = std::string(recvbuf, bytesReceived);
-            std::cout << "Received: " << message << std::endl;
+            std::cout  << message << std::endl;
 
         }
         else if(bytesReceived == 0)

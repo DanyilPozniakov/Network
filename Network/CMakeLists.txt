@@ -1,3 +1,4 @@
+
 add_library(Network STATIC
         Sockets/WindowsServerSocket.cpp
         Sockets/WindowsServerSocket.h
@@ -11,10 +12,10 @@ add_library(Network STATIC
         Sockets/ISocket.h
         Sockets/LinuxServeSocket.cpp
         Sockets/LinuxServeSocket.h
-        CLI/CLI.cpp
-        CLI/CLI.h
-        Core/Authorization/Authorization.cpp
-        Core/Authorization/Authorization.h
+        Core/CLI.cpp
+        Core/CLI.h
+        Core/Utils.h
+
 )
 
 target_include_directories(Network PUBLIC
@@ -23,6 +24,3 @@ target_include_directories(Network PUBLIC
 
 )
 
-target_link_libraries(Network PUBLIC
-        cli
-)

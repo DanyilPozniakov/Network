@@ -9,11 +9,12 @@
 #include <condition_variable>
 #include <string>
 #include <vector>
-#include <ConnectionInfo.h>
 #include <queue>
-#include <ISocket.h>
 #include <atomic>
 #include <memory>
+
+#include <Utils.h>
+#include <ISocket.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -21,19 +22,8 @@
 #define DEFAULT_HOST "localhost"
 
 
-struct ClientInfo
-{
-    SOCKET socket{};
-    int id;
-    int port;
-    std::string host;
-};
 
-struct Message
-{
-    std::string message;
-    ClientInfo socketInfo;
-};
+
 
 class WindowsServerSocket : public ISocket
 {

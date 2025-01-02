@@ -7,8 +7,10 @@
 #include <regex>
 
 
+
+
 /*---------------------------------CLI--------------------------------------------------------
- *I use the Command pattern and the CRTP pattern to implement a CLI for educational purposes.
+ *I use the Command pattern and the CRTP pattern to implement a CLI.
  */
 
 class IExecutable

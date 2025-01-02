@@ -32,17 +32,19 @@ Server::~Server()
 
 void Server::Run()
 {
-    if (windowsServerSocket->IsValid())
+    if(!windowsServerSocket->IsValid())
     {
-        windowsServerSocket->Run();
+        std::cerr << "Server is not valid!" << std::endl;
+        return;
     }
-    isRunning.store(true);
 
+    windowsServerSocket->Run();
+    isRunning.store(true);
 
     while (isRunning.load())
     {
         Message message = windowsServerSocket->GetMassageFromQueue();
-        lastMessage = &message;
+        lastMessage = message;
         if(!cli.ExecuteIfCommand(message.message))
         {
             windowsServerSocket->AddMessageToOutgoingQueue({"Unknown command! Enter 'help' to see all " \
@@ -82,9 +84,32 @@ void Server::SetSLICommands()
         std::cout << "Command base executed" << std::endl;
     });
 
+    cli.AddCommand("help", [this]()
+    {
+        std::string helpMessage = R"(Available commands:
+    login -u <username> -p <password> - login to the server
+    help        -   show all available commands
+    command1    -  command1 description)";
+
+        windowsServerSocket->AddMessageToOutgoingQueue({helpMessage, lastMessage.socketInfo});
+
+
+    });
+
+
+
     cli.AddCommand("login", [this](const std::string& args)
     {
+
+        std::smatch match;
+        std::regex reg(R"(login\s-u\s(\w+)\s-p\s(\w+))");
+        std::regex_match(args, match, reg);
+        for(auto& m : match)
+        {
+            std::cout << m << std::endl;
+        }
         std::cout << "Login command executed\n";
-        std::cout << args << std::endl;
+        windowsServerSocket->AddMessageToOutgoingQueue({"Login to the server", lastMessage.socketInfo});
     });
+
 }

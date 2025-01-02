@@ -7,15 +7,6 @@
 #include "WindowsClientSocket.h"
 
 
-#define YELLOW_OUTPUT(message) \
-std::cout << "\033[0;33m" << message << "\033[0m" << std::endl;
-
-#define GREEN_OUTPUT(message) \
-std::cout << "\033[1;32m" << message << "\033[0m" << std::endl;
-
-#define RED_OUTPUT(message) \
-std::cout << "\033[4;31m" << message << "\033[0m" << std::endl;
-
 
 WindowsServerSocket::WindowsServerSocket(const std::string& host, const std::string& port)
 {
@@ -128,13 +119,11 @@ void WindowsServerSocket::RunSocketIO()
         FD_SET listenFds;
         FD_ZERO(&listenFds);
         FD_SET(listenSocket, &listenFds);
-        timeval timeout{0, 100};
+        timeval timeout{0, 100}; // 100ms timeout
         int result = select(0, &listenFds, nullptr, nullptr, &timeout);
-        //YELLOW_OUTPUT("Listening for incoming connections...")
         if (result == SOCKET_ERROR)
         {
             std::cerr << "Listen socket failed: " << WSAGetLastError() << std::endl;
-            //TODO:: Add error handling, signal to the main thread -> stop the server
             continue;
         }
 
@@ -154,15 +143,13 @@ void WindowsServerSocket::RunSocketIO()
             int port = ntohs(clientInfo.sin_port);
             inet_ntop(AF_INET, &clientInfo.sin_addr, host, NI_MAXHOST);
             clientSockets.push_back({ClientSocket, serial++, port, host});
-            GREEN_OUTPUT("Client connected: " << host << " on port: " << port)
+            std::cout << "Client connected: " << host << " on port: " << port << std::endl;
         }
 
-        if (clientSockets.empty())
-        {
-            //std::cerr << "No clients connected, waiting for the client...." << std::endl;
-            continue;
-        }
+        if (clientSockets.empty()) continue;
 
+
+        //---------------------------------------------------------------------------------------
         //IO Logic
         FD_SET readFds, writesFds;
         FD_ZERO(&readFds);
@@ -273,7 +260,6 @@ Message WindowsServerSocket::GetMassageFromQueue()
     {
         if (clientSockets.empty())
         {
-            RED_OUTPUT("Error in GetMassageFromQueue clientSockets empty")
             return false;
         }
 
