@@ -10,20 +10,16 @@
 
 struct ClientInfo
 {
-
     SOCKET socket;
     int id;
     int port;
     std::string host;
-
 };
 
 struct Message
 {
     std::string message;
     ClientInfo socketInfo;
-
 };
-
 
 #endif //UTILS_H

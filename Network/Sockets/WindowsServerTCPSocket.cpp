@@ -2,13 +2,13 @@
 // Created by Pozniakov Danyil on 21.12.2024.
 //
 #include <iostream>
-#include "WindowsServerSocket.h"
+#include "WindowsServerTCPSocket.h"
 #include <mutex>
 #include "WindowsClientSocket.h"
 
 
 
-WindowsServerSocket::WindowsServerSocket(const std::string& host, const std::string& port)
+WindowsServerTCPSocket::WindowsServerTCPSocket(const std::string& host, const std::string& port)
 {
     ISocket::host = host;
     ISocket::port = port;
@@ -34,30 +34,30 @@ WindowsServerSocket::WindowsServerSocket(const std::string& host, const std::str
         return;
     }
 
-    WindowsServerSocket::InitializeSocket();
+    WindowsServerTCPSocket::InitializeSocket();
 }
 
-WindowsServerSocket::~WindowsServerSocket()
+WindowsServerTCPSocket::~WindowsServerTCPSocket()
 {
     ClosesSocket();
     WSACleanup();
 }
 
-void WindowsServerSocket::Run()
+void WindowsServerTCPSocket::Run()
 {
     isRunning.store(true);
-    std::thread SocketIO(&WindowsServerSocket::RunSocketIO, this);
+    std::thread SocketIO(&WindowsServerTCPSocket::RunSocketIO, this);
     SocketIO.detach();
     std::cout << "Threads finished" << std::endl;
 }
 
-void WindowsServerSocket::Stop()
+void WindowsServerTCPSocket::Stop()
 {
     isRunning.store(false);
     std::cout << "Socket server stopped!" << std::endl;
 }
 
-void WindowsServerSocket::InitializeSocket()
+void WindowsServerTCPSocket::InitializeSocket()
 {
     //Initialize the socket
     listenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
@@ -99,7 +99,7 @@ void WindowsServerSocket::InitializeSocket()
 }
 
 
-void WindowsServerSocket::ClosesSocket()
+void WindowsServerTCPSocket::ClosesSocket()
 {
     closesocket(listenSocket);
     for (const auto& ClientSocket : clientSockets)
@@ -110,7 +110,7 @@ void WindowsServerSocket::ClosesSocket()
 }
 
 
-void WindowsServerSocket::RunSocketIO()
+void WindowsServerTCPSocket::RunSocketIO()
 {
     //TODO: restructuring the method, unite the RunSocketIO and Listen methods into one MainLoop method
 
@@ -119,6 +119,7 @@ void WindowsServerSocket::RunSocketIO()
         FD_SET listenFds;
         FD_ZERO(&listenFds);
         FD_SET(listenSocket, &listenFds);
+
         timeval timeout{0, 100}; // 100ms timeout
         int result = select(0, &listenFds, nullptr, nullptr, &timeout);
         if (result == SOCKET_ERROR)
@@ -136,8 +137,8 @@ void WindowsServerSocket::RunSocketIO()
             {
                 std::cerr << "accept failed: " << WSAGetLastError() << std::endl;
                 continue;
-                //TODO: Add error handling, signal to the main thread
             }
+
             //Creating and save a connection info
             char host[NI_MAXHOST];
             int port = ntohs(clientInfo.sin_port);
@@ -216,7 +217,7 @@ void WindowsServerSocket::RunSocketIO()
                 continue;
             }
 
-            std::lock_guard lock_message_queue(outgoing_mtx);
+            std::lock_guard lock_out_message_queue(outgoing_mtx);
             while (!outgoingMessages.empty())
             {
                 if (FD_ISSET(socket_info->socket, &writesFds))
@@ -244,12 +245,12 @@ void WindowsServerSocket::RunSocketIO()
 }
 
 
-bool WindowsServerSocket::IsValid()
+bool WindowsServerTCPSocket::IsValid()
 {
     return listenSocket != INVALID_SOCKET;
 }
 
-Message WindowsServerSocket::GetMassageFromQueue()
+Message WindowsServerTCPSocket::GetMassageFromQueue()
 {
     /*
      * This method blocks the thread when it is called until there is at least one message in the queue
@@ -270,7 +271,7 @@ Message WindowsServerSocket::GetMassageFromQueue()
     return massage;
 }
 
-Message WindowsServerSocket::GetErrorFromQueue()
+Message WindowsServerTCPSocket::GetErrorFromQueue()
 {
     std::lock_guard lock(errors_mtx);
     if (errors.empty()) return {};
@@ -278,7 +279,7 @@ Message WindowsServerSocket::GetErrorFromQueue()
     return error;
 }
 
-void WindowsServerSocket::AddMessageToOutgoingQueue(const Message& message)
+void WindowsServerTCPSocket::AddMessageToOutgoingQueue(const Message& message)
 {
     std::lock_guard lock(outgoing_mtx);
     outgoingMessages.push(message);

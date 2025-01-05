@@ -22,14 +22,11 @@
 #define DEFAULT_HOST "localhost"
 
 
-
-
-
-class WindowsServerSocket : public ISocket
+class WindowsServerTCPSocket : public ISocket
 {
 public:
-    explicit WindowsServerSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
-    ~WindowsServerSocket() override;
+    explicit WindowsServerTCPSocket(const std::string& host = DEFAULT_HOST, const std::string& port = DEFAULT_PORT);
+    ~WindowsServerTCPSocket() override;
 
 
     void Run();
@@ -47,9 +44,9 @@ public:
 protected:
     std::vector<ClientInfo> clientSockets;
 
-    std::queue<Message>     incomingMessages;
-    std::queue<Message>     outgoingMessages;
-    std::vector<Message>    errors;
+    std::queue<Message> incomingMessages;
+    std::queue<Message> outgoingMessages;
+    std::vector<Message> errors;
 
     std::atomic<bool> isRunning = false;
     std::condition_variable massageReceived_cv;
@@ -63,6 +60,5 @@ private:
     std::array<char, 1024> recvbuf{};
     int serial = 0;
 };
-
 
 #endif //SERVERSOCKET_H

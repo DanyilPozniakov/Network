@@ -13,8 +13,8 @@
 
 Server::Server(const std::string& host, const std::string& port)
 {
-    serverSocket = new WindowsServerSocket(host, port);
-    windowsServerSocket = dynamic_cast<WindowsServerSocket*>(serverSocket);
+    serverSocket = new WindowsServerTCPSocket(host, port);
+    windowsServerSocket = dynamic_cast<WindowsServerTCPSocket*>(serverSocket);
 
     if (!windowsServerSocket)
     {

@@ -6,7 +6,7 @@
 #define CONNECTION_H
 #include <ISocket.h>
 #include <ConnectionInfo.h>
-#include <WindowsServerSocket.h>
+#include <WindowsServerTCPSocket.h>
 #include <atomic>
 #include <memory>
 #include <CLI.h>
@@ -42,7 +42,7 @@ protected:
     void SetSLICommands();
 private:
     ISocket* serverSocket;
-    WindowsServerSocket* windowsServerSocket;
+    WindowsServerTCPSocket* windowsServerSocket;
     CLI cli;
 
     Message lastMessage;

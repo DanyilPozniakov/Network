@@ -1,7 +1,7 @@
 
 add_library(Network STATIC
-        Sockets/WindowsServerSocket.cpp
-        Sockets/WindowsServerSocket.h
+        Sockets/WindowsServerTCPSocket.cpp
+        Sockets/WindowsServerTCPSocket.h
         Sockets/WindowsClientSocket.cpp
         Sockets/WindowsClientSocket.h
         Core/Server.cpp
@@ -10,11 +10,13 @@ add_library(Network STATIC
         Core/ConnectionInfo.cpp
         Sockets/ISocket.cpp
         Sockets/ISocket.h
-        Sockets/LinuxServeSocket.cpp
-        Sockets/LinuxServeSocket.h
-        Core/CLI.cpp
-        Core/CLI.h
+        Core/CLI/CLI.cpp
+        Core/CLI/CLI.h
         Core/Utils.h
+        Core/CLI/Command.cpp
+        Core/CLI/Command.h
+        Core/CLI/CommandManager.cpp
+        Core/CLI/CommandManager.h
 
 )
 
